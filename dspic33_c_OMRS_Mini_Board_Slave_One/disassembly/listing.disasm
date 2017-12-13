@@ -1,0 +1,2881 @@
+Disassembly Listing for dspic33_c_OMRS_Mini_Board
+Generated From:
+/home/dracula/MPLABXProjects/QEI/dist/XC16_dsPIC33FJ128MC804/production/QEI.production.elf
+Dec 13, 2017 5:16:32 PM
+
+---  /home/dracula/MPLABXProjects/QEI/user.c  -----------------------------------------------------------
+1:                 /* 
+2:                  * File:   user.c   
+3:                  * Author: dracula
+4:                  * Comments:
+5:                  * Revision history: EDITION 0.1 
+6:                  */
+7:                 
+8:                 /******************************************************************************/
+9:                 /* Files to Include                                                           */
+10:                /******************************************************************************/
+11:                //#define MANUAL
+12:                
+13:                /* Device header file */
+14:                #if defined(__XC16__)
+15:                    #include <xc.h>
+16:                #elif defined(__C30__)
+17:                    #if defined(__dsPIC33E__)
+18:                    	#include <p33Exxxx.h>
+19:                    #elif defined(__dsPIC33F__)
+20:                    	#include <p33Fxxxx.h>
+21:                    #endif
+22:                #endif
+23:                
+24:                #include <stdint.h>          /* For uint16_t definition                       */
+25:                #include <stdbool.h>         /* For true/false definition                     */
+26:                #include "user.h"            /* variables/params used by user.c               */
+27:                
+28:                #define FCY 40000000
+29:                #define BAUDRATE 57600//9600  
+30:                #define BRGVAL ((FCY/BAUDRATE)/16)-1
+31:                
+32:                #define FCAN  	      	40000000 
+33:                #define BITRATE 		1000000  
+34:                #define NTQ 			20		// 20 Time Quanta in a Bit Time
+35:                #define BRP_VAL			((FCAN/(2*NTQ*BITRATE))-1)
+36:                
+37:                #define DELAY_105us asm volatile ("REPEAT,#4201");Nop();//105us delay 
+38:                
+39:                #ifdef MANUAL
+40:                /* Assign 32x8word Message Buffers for ECAN1 in DMA RAM */
+41:                extern unsigned int ecan1MsgBuf[32][8] __attribute__((space(dma)));
+42:                #endif
+43:                
+44:                /******************************************************************************/
+45:                /* User Functions                                                             */
+46:                /******************************************************************************/
+47:                
+48:                /* <Initialize variables in user.h and insert code for user algorithms.> */
+49:                
+50:                void InitApp(void)
+51:                {
+000B50  FA0000     LNK #0x0
+52:                    /* TODO Initialize User Ports/Peripherals/Project here */
+53:                    //*************************************************************
+54:                    // Unlock Registers
+55:                    //*************************************************************
+56:                    __builtin_write_OSCCONL(OSCCON & ~(1<<6)); 
+000B52  803A11     MOV OSCCON, W1
+000B54  2FFBF0     MOV #0xFFBF, W0
+000B56  608100     AND W1, W0, W2
+000B58  200460     MOV #0x46, W0
+000B5A  200571     MOV #0x57, W1
+000B5C  207423     MOV #0x742, W3
+000B5E  784980     MOV.B W0, [W3]
+000B60  784981     MOV.B W1, [W3]
+000B62  784982     MOV.B W2, [W3]
+57:                
+58:                    //*************************************************************
+59:                    // Configure Input Functions
+60:                    // (See Table 30-1)
+61:                    //*************************************************************
+62:                    //***************************
+63:                    // Assign U1Rx To Pin RP20
+64:                    //***************************
+65:                    //RPINR18bits.U1RXR = 0;
+66:                    //RPINR18bits.U1RXR = 19;
+67:                    RPINR18bits.U1RXR = 20;
+000B64  803521     MOV RPINR18, W1
+000B66  2FFE00     MOV #0xFFE0, W0
+000B68  608000     AND W1, W0, W0
+000B6A  B30140     IOR #0x14, W0
+000B6C  883520     MOV W0, RPINR18
+68:                    //***************************
+69:                    // Assign U1CTS To Pin RP1
+70:                    //***************************
+71:                    //RPINR18bits.U1CTSR = 1;
+72:                    
+73:                    //*************************************************************
+74:                    // Configure Output Functions
+75:                    // (See Table 30-2)
+76:                    //*************************************************************
+77:                    //***************************
+78:                    // Assign U1Tx To Pin RP4
+79:                    //***************************
+80:                    //RPOR1bits.RP2R = 3;
+81:                    //RPOR6bits.RP12R = 3;
+82:                    RPOR2bits.RP4R = 3;
+000B6E  803621     MOV RPOR2, W1
+000B70  2FFE00     MOV #0xFFE0, W0
+000B72  608000     AND W1, W0, W0
+000B74  B30030     IOR #0x3, W0
+000B76  883620     MOV W0, RPOR2
+83:                    //***************************
+84:                    // Assign U1RTS To Pin RP3
+85:                    //***************************
+86:                    //RPOR1bits.RP3R = 4;
+87:                    
+88:                    //*************************************************************
+89:                    //Assign QEI1 Phase A To Pin RP10
+90:                    //*************************************************************
+91:                    RPINR14bits.QEA1R = 10;
+000B78  8034E1     MOV RPINR14, W1
+000B7A  2FFE00     MOV #0xFFE0, W0
+000B7C  608000     AND W1, W0, W0
+000B7E  B300A0     IOR #0xA, W0
+000B80  8834E0     MOV W0, RPINR14
+92:                    
+93:                    //*************************************************************
+94:                    //Assign QEI1 Phase B To Pin RP11
+95:                    //*************************************************************
+96:                    RPINR14bits.QEB1R = 11;
+000B82  8034E1     MOV RPINR14, W1
+000B84  2E0FF0     MOV #0xE0FF, W0
+000B86  608080     AND W1, W0, W1
+000B88  20B000     MOV #0xB00, W0
+000B8A  700001     IOR W0, W1, W0
+000B8C  8834E0     MOV W0, RPINR14
+97:                    
+98:                    //*************************************************************
+99:                    //Assign QEI1 INDEX To Pin RP25
+100:                   //*************************************************************
+101:                   RPINR15bits.INDX1R = 25;
+000B8E  8034F1     MOV RPINR15, W1
+000B90  2FFE00     MOV #0xFFE0, W0
+000B92  608000     AND W1, W0, W0
+000B94  B30190     IOR #0x19, W0
+000B96  8834F0     MOV W0, RPINR15
+102:                   
+103:                   //*************************************************************
+104:                   // Configure ECAN Module
+105:                   //*************************************************************
+106:                   //***************************
+107:                   // Assign ECAN1 C1RxD To Pin RP24
+108:                   //***************************
+109:                   RPINR26bits.C1RXR = 24;
+000B98  8035A1     MOV RPINR26, W1
+000B9A  2FFE00     MOV #0xFFE0, W0
+000B9C  608000     AND W1, W0, W0
+000B9E  B30180     IOR #0x18, W0
+000BA0  8835A0     MOV W0, RPINR26
+110:                   //***************************
+111:                   // Assign ECAN1 C1TxD To Pin RP14
+112:                   //***************************
+113:                   RPOR7bits.RP14R = 14;
+000BA2  803671     MOV RPOR7, W1
+000BA4  2FFE00     MOV #0xFFE0, W0
+000BA6  608000     AND W1, W0, W0
+000BA8  B300E0     IOR #0xE, W0
+000BAA  883670     MOV W0, RPOR7
+114:                   //*************************************************************
+115:                   // Lock Registers
+116:                   //*************************************************************
+117:                   __builtin_write_OSCCONL(OSCCON | (1<<6));
+000BAC  803A10     MOV OSCCON, W0
+000BAE  780100     MOV W0, W2
+000BB0  A06002     BSET W2, #6
+000BB2  200460     MOV #0x46, W0
+000BB4  200571     MOV #0x57, W1
+000BB6  207423     MOV #0x742, W3
+000BB8  784980     MOV.B W0, [W3]
+000BBA  784981     MOV.B W1, [W3]
+000BBC  784982     MOV.B W2, [W3]
+118:               
+119:                   /* Setup analog functionality and port direction */
+120:                   TRISAbits.TRISA7=0;
+000BBE  A9E2C0     BCLR TRISA, #7
+121:                   TRISAbits.TRISA10=0;
+000BC0  A942C1     BCLR 0x2C1, #2
+122:                   /*
+123:                   TRISAbits.TRISA0 = 0;
+124:                   TRISAbits.TRISA1 = 0;
+125:                   TRISBbits.TRISB2 = 1;
+126:                   TRISBbits.TRISB5 = 1;
+127:                   */
+128:                   //TRISB = 0xFFFF;
+129:                   /* Initialize peripherals */
+130:                   DMAInit();
+000BC2  07FF0B     RCALL DMAInit
+131:                   ECANInit();
+000BC4  07FE78     RCALL ECANInit
+132:                   UartInit();
+000BC6  070012     RCALL UartInit
+133:                   QEInit();
+000BC8  07002A     RCALL QEInit
+134:                   PwmInit();
+000BCA  070002     RCALL PwmInit
+135:                   
+136:               }
+000BCC  FA8000     ULNK
+000BCE  060000     RETURN
+137:               
+138:               void PwmInit(void)
+139:               {
+000BD0  FA0000     LNK #0x0
+140:                   #if 1
+141:                       /*
+142:                        * PxTPER = FCY/(FPWM*PxTMR PreScaler)-1
+143:                        * PxTMR PreScaler=1:1
+144:                        * FPWM=20KHz
+145:                        * FCY=40MHz, refer to function ConfigureOscillator
+146:                        * PxTPER=1999
+147:                        * 0x07CF
+148:                        * 0b0000 0111 1100 1111
+149:                        */
+150:                       P2TCON=0x8000;   //or P1TCONbits.PTEN = 1;
+000BD2  280000     MOV #0x8000, W0
+000BD4  882E00     MOV W0, P2TCON
+151:                       P2TMR=0x0000;
+000BD6  EF25C2     CLR P2TMR
+152:                       P2TPER=1999;     // period:50us
+000BD8  207CF0     MOV #0x7CF, W0
+000BDA  882E20     MOV W0, P2TPER
+153:                       //P1SECMP=0x0000;
+154:                       PWM2CON1=0x0FFF;
+000BDC  20FFF0     MOV #0xFFF, W0
+000BDE  882E40     MOV W0, PWM2CON1
+155:                       PWM2CON2=0x0040;
+000BE0  200400     MOV #0x40, W0
+000BE2  882E50     MOV W0, PWM2CON2
+156:                       P2OVDCON=0xFF00;
+000BE4  2FF000     MOV #0xFF00, W0
+000BE6  882EA0     MOV W0, P2OVDCON
+157:                       //P1FLTACON=0x0080;
+158:                       //P1DTCON1=0x0000;
+159:                       //P1DTCON2=0x0000;
+160:                       //P2DC1=100;
+161:                       // LSB is not used for duty cycle, the realy duty cycle count should be PIDC*/2 !!!!!!
+162:                   #endif
+163:               
+164:                   #if 0
+165:                   /* Configuration register FPOR */
+166:               
+167:                   /* PWM time base operates in a Free Running mode */
+168:                   P1TCONbits.PTMOD = 0b00;
+169:               
+170:                   /* PWM time base input clock period is TCY (1:1 prescale) */
+171:                   /* PWM time base output post scale is 1:1 */
+172:                   P1TCONbits.PTCKPS = 0b00;
+173:                   P1TCONbits.PTOPS = 0b00;
+174:               
+175:                   /* Choose PWM time period based on input clock selected */
+176:                   /* Refer to Equation: PxTPER=FCY/(FPWM × PxTMR PreScaler)-1*/
+177:                   /* PWM switching frequency is 20 kHz */
+178:                   /* FCY is 40 MHz */
+179:                   P1TPER = 1999;
+180:               
+181:                   /* PWM I/O pairs 1 to 3 are in complementary mode */
+182:                   /* PWM pins are enabled for PWM output */
+183:                   PWM1CON1bits.PMOD1 = 0;
+184:                   PWM1CON1bits.PMOD2 = 0;
+185:                   PWM1CON1bits.PMOD3 = 0;
+186:                   PWM1CON1bits.PEN1H = 1;
+187:                   PWM1CON1bits.PEN2H = 1;
+188:                   PWM1CON1bits.PEN3H = 1;
+189:                   PWM1CON1bits.PEN1L = 1;
+190:                   PWM1CON1bits.PEN2L = 1;
+191:                   PWM1CON1bits.PEN3L = 1;
+192:                   /* Immediate update of PWM enabled */
+193:                   PWM1CON2bits.IUE = 1;
+194:               
+195:                   /* PWM I/O pin controlled by PWM Generator */
+196:                   P1OVDCONbits.POVD3H = 1;
+197:                   P1OVDCONbits.POVD2H = 1;
+198:                   P1OVDCONbits.POVD1H = 1;
+199:                   P1OVDCONbits.POVD3L = 1;
+200:                   P1OVDCONbits.POVD2L = 1;
+201:                   P1OVDCONbits.POVD1L = 1;
+202:               
+203:                   /* Initialize duty cycle values for PWM1, PWM2 and PWM3 signals */
+204:                   P1DC1 = 200;
+205:                   P1DC2 = 200;
+206:                   P1DC3 = 200;
+207:                   P1TCONbits.PTEN = 1;
+208:                   #endif
+209:               }
+000BE8  FA8000     ULNK
+000BEA  060000     RETURN
+210:               
+211:               void UartInit(void)
+212:               {
+000BEC  FA0000     LNK #0x0
+213:                   
+214:                   U1MODEbits.STSEL = 0; // 1-stop bit
+000BEE  A90220     BCLR U1MODE, #0
+215:                   U1MODEbits.PDSEL = 0; // No Parity, 8-data bits
+000BF0  801101     MOV U1MODE, W1
+000BF2  2FFF90     MOV #0xFFF9, W0
+000BF4  608000     AND W1, W0, W0
+000BF6  881100     MOV W0, U1MODE
+216:                   U1MODEbits.ABAUD = 0; // Auto-Baud Disabled
+000BF8  A9A220     BCLR U1MODE, #5
+217:                   U1MODEbits.BRGH = 0; // Low Speed mode
+000BFA  A96220     BCLR U1MODE, #3
+218:                   U1MODEbits.LPBACK = 0;
+000BFC  A9C220     BCLR U1MODE, #6
+219:                   U1BRG = BRGVAL; // BAUD Rate Setting for 57600
+000BFE  2002A0     MOV #0x2A, W0
+000C00  881140     MOV W0, U1BRG
+220:                   U1STAbits.UTXISEL0 = 0; // Interrupt after one Tx character is transmitted
+000C02  A9A223     BCLR 0x223, #5
+221:                   U1STAbits.UTXISEL1 = 0;
+000C04  A9E223     BCLR 0x223, #7
+222:                   U1STAbits.URXISEL = 0;
+000C06  801111     MOV U1STA, W1
+000C08  2FF3F0     MOV #0xFF3F, W0
+000C0A  608000     AND W1, W0, W0
+000C0C  881110     MOV W0, U1STA
+223:                   IEC0bits.U1TXIE = 1; // Enable UART Tx interrupt
+000C0E  A88095     BSET 0x95, #4
+224:                   IEC0bits.U1RXIE = 1; // Enable UART Rx interrupt
+000C10  A86095     BSET 0x95, #3
+225:                   U1MODEbits.UARTEN = 1; // Enable UART
+000C12  A8E221     BSET 0x221, #7
+226:                   U1STAbits.UTXEN = 1; // Enable UART Tx
+000C14  A84223     BSET 0x223, #2
+227:                   /* wait at least 104 usec (1/9600) before sending first char */
+228:                   DELAY_105us
+000C16  091069     REPEAT #0x1069
+000C18  000000     NOP
+229:               //    int i;
+230:               //    for(i = 0; i < 4160; i++)
+231:               //    {
+232:               //    Nop();
+233:               //    }
+234:               
+235:               }
+000C1A  FA8000     ULNK
+000C1C  060000     RETURN
+236:               
+237:               void QEInit(void)
+238:               {
+000C1E  FA0000     LNK #0x0
+239:               
+240:                   MAX1CNT = 36351; //512*71-1=36351
+000C20  28DFF0     MOV #0x8DFF, W0
+000C22  880F30     MOV W0, MAX1CNT
+241:                   IEC3bits.QEI1IE = 1;
+000C24  A8409B     BSET 0x9B, #2
+242:                   DFLT1CONbits.QEOUT = 1;
+000C26  A8E1E2     BSET DFLT1CON, #7
+243:                   DFLT1CONbits.QECK = 2;//1:4????
+000C28  800F11     MOV DFLT1CON, W1
+000C2A  2FF8F0     MOV #0xFF8F, W0
+000C2C  608000     AND W1, W0, W0
+000C2E  A05000     BSET W0, #5
+000C30  880F10     MOV W0, DFLT1CON
+244:                   QEI1CONbits.QEIM = 7;
+000C32  800F01     MOV QEI1CON, W1
+000C34  207000     MOV #0x700, W0
+000C36  700001     IOR W0, W1, W0
+000C38  880F00     MOV W0, QEI1CON
+245:                   /*
+246:                   QEI1CONbits.QEIM = 6;
+247:                   QEI1CONbits.POSRES = 1;
+248:                   */
+249:               }
+000C3A  FA8000     ULNK
+000C3C  060000     RETURN
+250:               
+251:               #ifdef MANUAL
+252:               
+253:               void ECANInit(void)
+254:               {   
+255:                   /* Set the ECAN module for Configuration Mode before writing into the Baud
+256:                   Rate Control Registers*/
+257:                   C1CTRL1bits.REQOP = 4;
+258:                   /* Wait for the ECAN module to enter into Configuration Mode */
+259:                   while(C1CTRL1bits.OPMODE != 4);
+260:                   /* Phase Segment 1 time is 8 TQ */
+261:                   C1CFG2bits.SEG1PH = 0x7;
+262:                   /* Phase Segment 2 time is set to be programmable */
+263:                   C1CFG2bits.SEG2PHTS = 0x1;
+264:                   /* Phase Segment 2 time is 6 TQ */
+265:                   C1CFG2bits.SEG2PH = 0x5;
+266:                   /* Propagation Segment time is 5 TQ */
+267:                   C1CFG2bits.PRSEG = 0x4;
+268:                   /* Bus line is sampled three times at the sample point */
+269:                   C1CFG2bits.SAM = 0x1;
+270:                   /* Synchronization Jump Width set to 4 TQ */
+271:                   C1CFG1bits.SJW = 0x3;
+272:                   /* Baud Rate Prescaler bits set to 1:1, i.e., TQ = (2*1*1)/ FCAN */
+273:                   C1CFG1bits.BRP = BRP_VAL;
+274:                   //C1CFG1bits.BRP = 0x0;
+275:                   /* 4 CAN Messages to be buffered in DMA RAM */
+276:                   C1FCTRLbits.DMABS = 0b000;
+277:                   
+278:                   /* Filter configuration */
+279:                   /* Enable window to access acceptance filter registers */
+280:                   C1CTRL1bits.WIN = 0b1;
+281:                   
+282:               //    /* Select Acceptance Filter Mask 0 for Acceptance Filter 0 */
+283:               //    C1FMSKSEL1bits.F0MSK=0x0;
+284:               //    /* Configure Acceptance Filter Mask 0 register to mask EID<5:0>
+285:               //    Mask Bits (29-bits) : 0b0 0000 0000 0000 0000 0000 0011 1111
+286:               //    SID<10:0> : 0b00000000000 ..SID<10:0> or EID<28:18>
+287:               //    EID<17:16> : 0b00 ..EID<17:16>
+288:               //    EID<15:0> : 0b0000000000111111 ..EID<15:0> */
+289:               //    C1RXM0SIDbits.SID = 0x0;
+290:               //    C1RXM0SIDbits.EID = 0x0;
+291:               //    C1RXM0EIDbits.EID = 0x3F;
+292:               //    /* Configure Acceptance Filter 0 to match extended identifier
+293:               //    Filter Bits (29-bits) : 0b1 1110 0000 0011 1111 0101 10xx xxxx
+294:               //    SID<10:0> : 0b11110000000 ..SID<10:0> or EID<28:18>
+295:               //    EID<17:16> : 0b11 ..EID<17:16>
+296:               //    EID<15:0> : 0b1111010110xxxxxx ..EID<15:0> */
+297:               //    C1RXF0SIDbits.SID = 0x780;
+298:               //    C1RXF0SIDbits.EID = 0x3;
+299:               //    C1RXM0EIDbits.EID = 0xF580;
+300:               //    /* Acceptance Filter 0 to check for Extended Identifier */
+301:               //    C1RXM0SIDbits.MIDE = 0x1;
+302:               //    C1RXF0SIDbits.EXIDE= 0x1;
+303:               ////    /* Acceptance Filter 0 to use FIFO Message Buffer to store message */
+304:               ////    C1BUFPNT1bits.F0BP = 0xF;
+305:               //    /* Acceptance Filter 0 to use Message Buffer 1 to store message */
+306:               //    C1BUFPNT1bits.F0BP = 0x1;
+307:               //    /* Enable Acceptance Filter 0 */
+308:               //    C1FEN1bits.FLTEN0=0x1;
+309:                   
+310:                   /* Select Acceptance Filter Mask 0 for Acceptance Filter 0 */
+311:                   C1FMSKSEL1bits.F0MSK=0x0;
+312:                   /* Configure Acceptance Filter Mask 0 register to mask EID<28:0>
+313:                   Mask Bits (29-bits) : 0b1 1111 1111 1111 1111 1111 1111 1111
+314:                   SID<10:0> : 0b11111111111 ..SID<10:0> or EID<28:18>
+315:                   EID<17:16> : 0b11 ..EID<17:16>
+316:                   EID<15:0> : 0b1111111111111111 ..EID<15:0> */
+317:                   C1RXM0SIDbits.SID = 0x7FF;
+318:                   C1RXM0SIDbits.EID = 0x3;
+319:                   C1RXM0EIDbits.EID = 0xFFFF;
+320:                   /* Configure Acceptance Filter 0 to match extended identifier
+321:                   Filter Bits (29-bits) : 0b1 1110 0000 0011 1111 0101 1000 0000
+322:                   SID<10:0> : 0b11110000000 ..SID<10:0> or EID<28:18>
+323:                   EID<17:16> : 0b11 ..EID<17:16>
+324:                   EID<15:0> : 0b1111010110000000 ..EID<15:0> */
+325:                   C1RXF0SIDbits.SID = 0x780;
+326:                   C1RXF0SIDbits.EID = 0x3;
+327:                   C1RXF0EIDbits.EID = 0xF580;
+328:                   /* Acceptance Filter 0 to check for Extended Identifier */
+329:                   C1RXM0SIDbits.MIDE = 0x1;
+330:                   C1RXF0SIDbits.EXIDE= 0x1;
+331:                   /* Acceptance Filter 0 to use Message Buffer 1 to store message */
+332:                   C1BUFPNT1bits.F0BP = 0x1;
+333:                   /* Enable Acceptance Filter 0 */
+334:                   C1FEN1bits.FLTEN0=0x1;
+335:                   
+336:                   /* Select Acceptance Filter Mask 1 for Acceptance Filter 1 */
+337:                   C1FMSKSEL1bits.F1MSK=0x1;
+338:                   /* Configure Acceptance Filter Mask 0 register to mask EID<28:0>
+339:                   Mask Bits (29-bits) : 0b1 1111 1111 1111 1111 1111 1111 1111
+340:                   SID<10:0> : 0b11111111111 ..SID<10:0> or EID<28:18>
+341:                   EID<17:16> : 0b11 ..EID<17:16>
+342:                   EID<15:0> : 0b1111111111111111 ..EID<15:0> */
+343:                   C1RXM1SIDbits.SID = 0x7FF;
+344:                   C1RXM1SIDbits.EID = 0x3;
+345:                   C1RXM1EIDbits.EID = 0xFFFF;
+346:                   /* Configure Acceptance Filter 0 to match extended identifier
+347:                   Filter Bits (29-bits) : 0b1 1110 0000 0011 1111 0101 1000 0001
+348:                   SID<10:0> : 0b11110000000 ..SID<10:0> or EID<28:18>
+349:                   EID<17:16> : 0b11 ..EID<17:16>
+350:                   EID<15:0> : 0b1111010110000001 ..EID<15:0> */
+351:                   C1RXF1SIDbits.SID = 0x780;
+352:                   C1RXF1SIDbits.EID = 0x3;
+353:                   C1RXF1EIDbits.EID = 0xF581;
+354:                   /* Acceptance Filter 0 to check for Extended Identifier */
+355:                   C1RXM1SIDbits.MIDE = 0x1;
+356:                   C1RXF1SIDbits.EXIDE= 0x1;
+357:                   /* Acceptance Filter 0 to use Message Buffer 2 to store message */
+358:                   C1BUFPNT1bits.F1BP = 0x2;
+359:                   /* Enable Acceptance Filter 0 */
+360:                   C1FEN1bits.FLTEN1=0x1;
+361:                   
+362:                   /* Select Acceptance Filter Mask 2 for Acceptance Filter 2 */
+363:                   C1FMSKSEL1bits.F2MSK=0x2;
+364:                   /* Configure Acceptance Filter Mask 0 register to mask EID<28:0>
+365:                   Mask Bits (29-bits) : 0b1 1111 1111 1111 1111 1111 1111 1111
+366:                   SID<10:0> : 0b11111111111 ..SID<10:0> or EID<28:18>
+367:                   EID<17:16> : 0b11 ..EID<17:16>
+368:                   EID<15:0> : 0b1111111111111111 ..EID<15:0> */
+369:                   C1RXM2SIDbits.SID = 0x7FF;
+370:                   C1RXM2SIDbits.EID = 0x3;
+371:                   C1RXM2EIDbits.EID = 0xFFFF;
+372:                   /* Configure Acceptance Filter 0 to match extended identifier
+373:                   Filter Bits (29-bits) : 0b1 1110 0000 0011 1111 0101 1000 0010
+374:                   SID<10:0> : 0b11110000000 ..SID<10:0> or EID<28:18>
+375:                   EID<17:16> : 0b11 ..EID<17:16>
+376:                   EID<15:0> : 0b1111010110000010 ..EID<15:0> */
+377:                   C1RXF2SIDbits.SID = 0x780;
+378:                   C1RXF2SIDbits.EID = 0x3;
+379:                   C1RXF2EIDbits.EID = 0xF582;
+380:                   /* Acceptance Filter 0 to check for Extended Identifier */
+381:                   C1RXM2SIDbits.MIDE = 0x1;
+382:                   C1RXF2SIDbits.EXIDE= 0x1;
+383:                   /* Acceptance Filter 0 to use Message Buffer 2 to store message */
+384:                   C1BUFPNT1bits.F2BP = 0x3;
+385:                   /* Enable Acceptance Filter 0 */
+386:                   C1FEN1bits.FLTEN2=0x1; 
+387:                   
+388:                   /* Clear Window Bit to Access ECAN Control Registers */
+389:                   C1CTRL1bits.WIN=0b0;
+390:               
+391:                   C1FCTRLbits.FSA = 0x8;
+392:                   /* Put the ECAN Module into Normal Mode Operating Mode*/
+393:                   C1CTRL1bits.REQOP = 0;
+394:                   /* Wait for the ECAN module to enter into Normal Operating Mode */
+395:                   while(C1CTRL1bits.OPMODE != 0);
+396:               
+397:                   /* Configure Message Buffer 0-7 for Transmission and assign priority*/
+398:                   C1TR01CONbits.TXEN0 = 0x1;
+399:                   C1TR01CONbits.TXEN1 = 0x0;
+400:                   C1TR23CONbits.TXEN2 = 0x0;
+401:                   C1TR23CONbits.TXEN3 = 0x0;
+402:                   C1TR01CONbits.TX0PRI = 0x3;
+403:                   C1RXFUL1 = 0x0;
+404:                   C1INTFbits.RBIF = 0;
+405:                       
+406:               }
+407:               
+408:               void DMAInit(void)
+409:               {
+410:                   
+411:                   /* Data Transfer Size: Word Transfer Mode */
+412:                   DMA0CONbits.SIZE = 0x0;
+413:                   /* Data Transfer Direction: DMA RAM to Peripheral */
+414:                   DMA0CONbits.DIR = 0x1;
+415:                   /* DMA Addressing Mode: Peripheral Indirect Addressing mode */
+416:                   DMA0CONbits.AMODE = 0x2;
+417:                   /* Operating Mode: Continuous, Ping-Pong modes disabled */
+418:                   DMA0CONbits.MODE = 0x0;
+419:                   /* Assign ECAN1 Transmit event for DMA Channel 0 */
+420:                   DMA0REQ = 70;
+421:                   /* Set Number of DMA Transfer per ECAN message to 8 words */
+422:                   DMA0CNT = 7;
+423:                   /* Peripheral Address: ECAN1 Transmit Register */
+424:                   DMA0PAD = &C1TXD;
+425:                   /* Start Address Offset for ECAN1 Message Buffer 0x0000 */
+426:                   DMA0STA = __builtin_dmaoffset(ecan1MsgBuf);
+427:                   /* Channel Enable: Enable DMA Channel 0 */
+428:                   DMA0CONbits.CHEN = 0x1;
+429:                   /* Channel Interrupt Enable: Enable DMA Channel 0 Interrupt */
+430:                   IEC0bits.DMA0IE = 1;
+431:                   
+432:                   /* Data Transfer Size: Word Transfer Mode */
+433:                   DMA2CONbits.SIZE = 0x0;
+434:                   /* Data Transfer Direction: Peripheral to DMA RAM */
+435:                   DMA2CONbits.DIR = 0x0;
+436:                   /* DMA Addressing Mode: Peripheral Indirect Addressing mode */
+437:                   DMA2CONbits.AMODE = 0x2;
+438:                   /* Operating Mode: Continuous, Ping-Pong modes disabled */
+439:                   DMA2CONbits.MODE = 0x0;
+440:                   /* Assign ECAN1 Receive event for DMA Channel 2 */
+441:                   DMA2REQ = 34;
+442:                   /* Set Number of DMA Transfer per ECAN message to 8 words */
+443:                   DMA2CNT = 7;
+444:                   /* Peripheral Address: ECAN1 Receive Register */
+445:                   DMA2PAD = &C1RXD;
+446:                   /* Start Address Offset for ECAN1 Message Buffer 0x0000 */
+447:                   //DMA1STA = 0x0000;
+448:                   DMA2STA = __builtin_dmaoffset(ecan1MsgBuf);
+449:                   /* Channel Enable: Enable DMA Channel 1 */
+450:                   DMA2CONbits.CHEN = 0x1;
+451:                   /* Channel Interrupt Enable: Enable DMA Channel 1 Interrupt */
+452:                   IEC1bits.DMA2IE = 1;
+453:                   
+454:               }
+455:               #endif
+---  /home/dracula/MPLABXProjects/QEI/traps.c  ----------------------------------------------------------
+1:                 /******************************************************************************/
+2:                 /* Files to Include                                                           */
+3:                 /******************************************************************************/
+4:                 
+5:                 /* Device header file */
+6:                 #if defined(__XC16__)
+7:                     #include <xc.h>
+8:                 #elif defined(__C30__)
+9:                     #if defined(__dsPIC33E__)
+10:                    	#include <p33Exxxx.h>
+11:                    #elif defined(__dsPIC33F__)
+12:                    	#include <p33Fxxxx.h>
+13:                    #endif
+14:                #endif
+15:                
+16:                #include <stdint.h>        /* Includes uint16_t definition */
+17:                #include <stdbool.h>       /* Includes true/false definition */
+18:                
+19:                /******************************************************************************/
+20:                /* Trap Function Prototypes                                                   */
+21:                /******************************************************************************/
+22:                
+23:                /* <Other function prototypes for debugging trap code may be inserted here>   */
+24:                
+25:                /* Use if INTCON2 ALTIVT=1 */
+26:                void __attribute__((interrupt,no_auto_psv)) _OscillatorFail(void);
+27:                void __attribute__((interrupt,no_auto_psv)) _AddressError(void);
+28:                void __attribute__((interrupt,no_auto_psv)) _StackError(void);
+29:                void __attribute__((interrupt,no_auto_psv)) _MathError(void);
+30:                
+31:                #if defined(__HAS_DMA__)
+32:                
+33:                void __attribute__((interrupt,no_auto_psv)) _DMACError(void);
+34:                
+35:                #endif
+36:                
+37:                #if defined(__dsPIC33F__)
+38:                
+39:                /* Use if INTCON2 ALTIVT=0 */
+40:                void __attribute__((interrupt,no_auto_psv)) _AltOscillatorFail(void);
+41:                void __attribute__((interrupt,no_auto_psv)) _AltAddressError(void);
+42:                void __attribute__((interrupt,no_auto_psv)) _AltStackError(void);
+43:                void __attribute__((interrupt,no_auto_psv)) _AltMathError(void);
+44:                
+45:                    #if defined(__HAS_DMA__)
+46:                
+47:                    void __attribute__((interrupt,no_auto_psv)) _AltDMACError(void);
+48:                
+49:                    #endif
+50:                
+51:                #endif
+52:                
+53:                /* Default interrupt handler */
+54:                void __attribute__((interrupt,no_auto_psv)) _DefaultInterrupt(void);
+55:                
+56:                #if defined(__dsPIC33E__)
+57:                
+58:                /* These are additional traps in the 33E family.  Refer to the PIC33E
+59:                migration guide.  There are no Alternate Vectors in the 33E family. */
+60:                void __attribute__((interrupt,no_auto_psv)) _HardTrapError(void);
+61:                void __attribute__((interrupt,no_auto_psv)) _SoftTrapError(void);
+62:                
+63:                #endif
+64:                
+65:                /******************************************************************************/
+66:                /* Trap Handling                                                              */
+67:                /*                                                                            */
+68:                /* These trap routines simply ensure that the device continuously loops       */
+69:                /* within each routine.  Users who actually experience one of these traps     */
+70:                /* can add code to handle the error.  Some basic examples for trap code,      */
+71:                /* including assembly routines that process trap sources, are available at    */
+72:                /* www.microchip.com/codeexamples                                             */
+73:                /******************************************************************************/
+74:                
+75:                /* Primary (non-alternate) address error trap function declarations */
+76:                void __attribute__((interrupt,no_auto_psv)) _OscillatorFail(void)
+77:                {
+000408  FA0000     LNK #0x0
+78:                        INTCON1bits.OSCFAIL = 0;        /* Clear the trap flag */
+00040A  A92080     BCLR INTCON1, #1
+79:                        while(1);
+00040C  37FFFF     BRA 0x40C
+80:                }
+81:                
+82:                void __attribute__((interrupt,no_auto_psv)) _AddressError(void)
+83:                {
+00040E  FA0000     LNK #0x0
+84:                        INTCON1bits.ADDRERR = 0;        /* Clear the trap flag */
+000410  A96080     BCLR INTCON1, #3
+85:                        while (1);
+000412  37FFFF     BRA 0x412
+86:                }
+87:                void __attribute__((interrupt,no_auto_psv)) _StackError(void)
+88:                {
+000414  FA0000     LNK #0x0
+89:                        INTCON1bits.STKERR = 0;         /* Clear the trap flag */
+000416  A94080     BCLR INTCON1, #2
+90:                        while (1);
+000418  37FFFF     BRA 0x418
+91:                }
+92:                
+93:                void __attribute__((interrupt,no_auto_psv)) _MathError(void)
+94:                {
+00041A  FA0000     LNK #0x0
+95:                        INTCON1bits.MATHERR = 0;        /* Clear the trap flag */
+00041C  A98080     BCLR INTCON1, #4
+96:                        while (1);
+00041E  37FFFF     BRA 0x41E
+97:                }
+98:                
+99:                #if defined(__HAS_DMA__)
+100:               
+101:               void __attribute__((interrupt,no_auto_psv)) _DMACError(void)
+102:               {
+000420  FA0000     LNK #0x0
+103:                       INTCON1bits.DMACERR = 0;        /* Clear the trap flag */
+000422  A9A080     BCLR INTCON1, #5
+104:                       while (1);
+000424  37FFFF     BRA 0x424
+105:               }
+106:               
+107:               #endif
+108:               
+109:               #if defined(__dsPIC33F__)
+110:               
+111:               /* Alternate address error trap function declarations */
+112:               void __attribute__((interrupt,no_auto_psv)) _AltOscillatorFail(void)
+113:               {
+000426  FA0000     LNK #0x0
+114:                       INTCON1bits.OSCFAIL = 0;        /* Clear the trap flag */
+000428  A92080     BCLR INTCON1, #1
+115:                       while (1);
+00042A  37FFFF     BRA 0x42A
+116:               }
+117:               
+118:               void __attribute__((interrupt,no_auto_psv)) _AltAddressError(void)
+119:               {
+00042C  FA0000     LNK #0x0
+120:                       INTCON1bits.ADDRERR = 0;        /* Clear the trap flag */
+00042E  A96080     BCLR INTCON1, #3
+121:                       while (1);
+000430  37FFFF     BRA 0x430
+122:               }
+123:               
+124:               void __attribute__((interrupt,no_auto_psv)) _AltStackError(void)
+125:               {
+000432  FA0000     LNK #0x0
+126:                       INTCON1bits.STKERR = 0;         /* Clear the trap flag */
+000434  A94080     BCLR INTCON1, #2
+127:                       while (1);
+000436  37FFFF     BRA 0x436
+128:               }
+129:               
+130:               void __attribute__((interrupt,no_auto_psv)) _AltMathError(void)
+131:               {
+000438  FA0000     LNK #0x0
+132:                       INTCON1bits.MATHERR = 0;        /* Clear the trap flag */
+00043A  A98080     BCLR INTCON1, #4
+133:                       while (1);
+00043C  37FFFF     BRA 0x43C
+134:               }
+135:               
+136:                   #if defined(__HAS_DMA__)
+137:               
+138:                   void __attribute__((interrupt,no_auto_psv)) _AltDMACError(void)
+139:                   {
+00043E  FA0000     LNK #0x0
+140:                        INTCON1bits.DMACERR = 0;        /* Clear the trap flag */
+000440  A9A080     BCLR INTCON1, #5
+141:                        while (1);
+000442  37FFFF     BRA 0x442
+142:                   }
+143:               
+144:                   #endif
+145:               
+146:               #endif
+147:               
+148:               /******************************************************************************/
+149:               /* Default Interrupt Handler                                                  */
+150:               /*                                                                            */
+151:               /* This executes when an interrupt occurs for an interrupt source with an     */
+152:               /* improperly defined or undefined interrupt handling routine.                */
+153:               /******************************************************************************/
+154:               void __attribute__((interrupt,no_auto_psv)) _DefaultInterrupt(void)
+155:               {
+000444  FA0000     LNK #0x0
+156:                       while(1);
+000446  37FFFF     BRA 0x446
+157:               }
+158:               
+159:               #if defined(__dsPIC33E__)
+160:               
+161:               /* These traps are new to the dsPIC33E family.  Refer to the device Interrupt
+162:               chapter of the FRM to understand trap priority. */
+163:               void __attribute__((interrupt,no_auto_psv)) _HardTrapError(void)
+164:               {
+165:                   while(1);
+166:               }
+167:               void __attribute__((interrupt,no_auto_psv)) _SoftTrapError(void)
+168:               {
+169:                   while(1);
+170:               }
+171:               
+172:               #endif
+---  /home/dracula/MPLABXProjects/QEI/system.c  ---------------------------------------------------------
+1:                 /* 
+2:                  * File:   system.c   
+3:                  * Author: dracula
+4:                  * Comments:
+5:                  * Revision history: EDITION 0.1 
+6:                  */
+7:                 
+8:                 /******************************************************************************/
+9:                 /* Files to Include                                                           */
+10:                /******************************************************************************/
+11:                
+12:                /* Device header file */
+13:                #if defined(__XC16__)
+14:                    #include <xc.h>
+15:                #elif defined(__C30__)
+16:                    #if defined(__dsPIC33E__)
+17:                    	#include <p33Exxxx.h>
+18:                    #elif defined(__dsPIC33F__)
+19:                    	#include <p33Fxxxx.h>
+20:                    #endif
+21:                #endif
+22:                
+23:                #include <stdint.h>          /* For uint16_t definition                       */
+24:                #include <stdbool.h>         /* For true/false definition                     */
+25:                
+26:                #include "system.h"          /* variables/params used by system.c             */
+27:                
+28:                /******************************************************************************/
+29:                /* System Level Functions                                                     */
+30:                /*                                                                            */
+31:                /* Custom oscillator configuration funtions, reset source evaluation          */
+32:                /* functions, and other non-peripheral microcontroller initialization         */
+33:                /* functions get placed in system.c.                                          */
+34:                /*                                                                            */
+35:                /******************************************************************************/
+36:                
+37:                /* Refer to the device Family Reference Manual Oscillator section for
+38:                information about available oscillator configurations.  Typically
+39:                this would involve configuring the oscillator tuning register or clock
+40:                switching useing the compiler's __builtin_write_OSCCON functions.
+41:                Refer to the C Compiler for PIC24 MCUs and dsPIC DSCs User Guide in the
+42:                compiler installation directory /doc folder for documentation on the
+43:                __builtin functions.*/
+44:                
+45:                /* TODO Add clock switching code if appropriate.  An example stub is below.   */
+46:                void ConfigureOscillator(void)
+47:                {
+000C3E  FA0000     LNK #0x0
+48:                    // Configure Oscillator to operate the device at 40Mhz
+49:                    // Fosc = Fin*M/(N1*N2), Fcy = Fosc/2
+50:                    // Fosc = 7.3728M*43/(2*2) = 80Mhz for 7.3728M input clock, Fcy=40Mhz
+51:                	PLLFBD=41;					// M=43
+000C40  200290     MOV #0x29, W0
+000C42  883A30     MOV W0, PLLFBD
+52:                	CLKDIVbits.PLLPOST=0;		// N1=2
+000C44  803A21     MOV CLKDIV, W1
+000C46  2FF3F0     MOV #0xFF3F, W0
+000C48  608000     AND W1, W0, W0
+000C4A  883A20     MOV W0, CLKDIV
+53:                	CLKDIVbits.PLLPRE=0;		// N2=2
+000C4C  803A21     MOV CLKDIV, W1
+000C4E  2FFE00     MOV #0xFFE0, W0
+000C50  608000     AND W1, W0, W0
+000C52  883A20     MOV W0, CLKDIV
+54:                	OSCTUN=0x0015;              // Tune FRC oscillator 8Mhz, if FRC is used
+000C54  200150     MOV #0x15, W0
+000C56  883A40     MOV W0, OSCTUN
+55:                    // Disable Watch Dog Timer
+56:                	RCONbits.SWDTEN=0;
+000C58  A9A740     BCLR RCON, #5
+57:                
+58:                    /*MPLAB® C Compiler for PIC24 MCUs and dsPIC DSCs provides the following built-in C language functions for unlocking and writing to the OSCCON register:*/
+59:                    //__builtin_write_OSCCONH(value)
+60:                    //__builtin_write_OSCCONL(value)
+61:                    /*See MPLAB C Compiler Help for more information.*/
+62:                    
+63:                    // Clock switch to incorporate PLL
+64:                	__builtin_write_OSCCONH(0x03);		// Initiate Clock Switch to Primary Oscillator with PLL (NOSC=0b011)
+000C5A  200032     MOV #0x3, W2
+000C5C  200780     MOV #0x78, W0
+000C5E  2009A1     MOV #0x9A, W1
+000C60  207433     MOV #0x743, W3
+000C62  784980     MOV.B W0, [W3]
+000C64  784981     MOV.B W1, [W3]
+000C66  784982     MOV.B W2, [W3]
+65:                	__builtin_write_OSCCONL(0x01);		// Start clock switching
+000C68  200012     MOV #0x1, W2
+000C6A  200460     MOV #0x46, W0
+000C6C  200571     MOV #0x57, W1
+000C6E  207423     MOV #0x742, W3
+000C70  784980     MOV.B W0, [W3]
+000C72  784981     MOV.B W1, [W3]
+000C74  784982     MOV.B W2, [W3]
+66:                    //OSCCONbits.NOSC=0b011;
+67:                    //OSCCONbits.OSWEN=1;
+68:                    //OSCCON=0x0301;
+69:                	while(OSCCONbits.COSC != 0b011);    // Wait for Clock switch to occur	
+000C76  000000     NOP
+000C78  803A11     MOV OSCCON, W1
+000C7A  270000     MOV #0x7000, W0
+000C7C  608080     AND W1, W0, W1
+000C7E  230000     MOV #0x3000, W0
+000C80  508F80     SUB W1, W0, [W15]
+000C82  3AFFFA     BRA NZ, 0xC78
+70:                	while(OSCCONbits.LOCK !=1);         // Wait for PLL to lock, only if PLL is needed
+000C84  000000     NOP
+000C86  803A11     MOV OSCCON, W1
+000C88  200200     MOV #0x20, W0
+000C8A  608000     AND W1, W0, W0
+000C8C  E00000     CP0 W0
+000C8E  32FFFB     BRA Z, 0xC86
+71:                    
+72:                
+73:                #if 0
+74:                        /* Disable Watch Dog Timer */
+75:                        RCONbits.SWDTEN = 0;
+76:                
+77:                        /* When clock switch occurs switch to Primary Osc (HS, XT, EC) */
+78:                        __builtin_write_OSCCONH(0x02);  /* Set OSCCONH for clock switch */
+79:                        __builtin_write_OSCCONL(0x01);  /* Start clock switching */
+80:                        while(OSCCONbits.COSC != 0b010);
+81:                        /* Wait for Clock switch to occur */
+82:                        /* Wait for PLL to lock, only if PLL is needed */
+83:                        /* while(OSCCONbits.LOCK != 1); */
+84:                #endif
+85:                }
+000C90  FA8000     ULNK
+000C92  060000     RETURN
+---  /home/dracula/MPLABXProjects/QEI/main.c  -----------------------------------------------------------
+1:                 /* 
+2:                  * File:   main.c   
+3:                  * Author: dracula
+4:                  * Comments:
+5:                  * Revision history: EDITION 0.1 
+6:                  */
+7:                 
+8:                 /******************************************************************************/
+9:                 /* Files to Include                                                           */
+10:                /******************************************************************************/
+11:                
+12:                /* Device header file, thus actually include <p33FJ128MC804.h> */
+13:                #if defined(__XC16__)
+14:                    #include <xc.h>
+15:                #elif defined(__C30__)
+16:                    #if defined(__dsPIC33E__)
+17:                    	#include <p33Exxxx.h>
+18:                    #elif defined(__dsPIC33F__)
+19:                    	#include <p33Fxxxx.h>
+20:                    #endif
+21:                #endif
+22:                
+23:                #include <stdint.h>        /* Includes uint16_t definition                    */
+24:                #include <stdbool.h>
+25:                //#include <p33FJ128MC804.h>       /* Includes true/false definition                  */
+26:                
+27:                #include "system.h"        /* System funct/params, like osc/peripheral config */
+28:                #include "user.h"          /* User funct/params, such as InitApp              */
+29:                
+30:                /* TODO DSPIC33FJ128MC804 Configuration Bit Settings*/
+31:                // 'C' source line config statements
+32:                // FBS
+33:                #pragma config BWRP = WRPROTECT_OFF     // Boot Segment Write Protect (Boot Segment may be written)
+34:                #pragma config BSS = NO_FLASH           // Boot Segment Program Flash Code Protection (No Boot program Flash segment)
+35:                #pragma config RBS = NO_RAM             // Boot Segment RAM Protection (No Boot RAM)
+36:                
+37:                // FSS
+38:                #pragma config SWRP = WRPROTECT_OFF     // Secure Segment Program Write Protect (Secure segment may be written)
+39:                #pragma config SSS = NO_FLASH           // Secure Segment Program Flash Code Protection (No Secure Segment)
+40:                #pragma config RSS = NO_RAM             // Secure Segment Data RAM Protection (No Secure RAM)
+41:                
+42:                // FGS
+43:                #pragma config GWRP = OFF               // General Code Segment Write Protect (User program memory is not write-protected)
+44:                #pragma config GSS = OFF                // General Segment Code Protection (User program memory is not code-protected)
+45:                
+46:                /*
+47:                _FOSCSEL(FNOSC_FRC);                                  // Select Internal FRC at POR
+48:                _FOSC(FCKSM_CSECMD & OSCIOFNC_OFF & POSCMD_XT);       // Enable Clock Switching and Configure Posc in XT mode
+49:                _FPOR(RST_PWMPIN & PWM1H_ACT_HI & PWM1L_ACT_HI);      // High and Low switches set to active-high state 
+50:                */
+51:                
+52:                // FOSCSEL
+53:                #pragma config FNOSC = PRI              // Primary Oscillator (XT, HS, EV))
+54:                #pragma config IESO = ON                // Internal External Switch Over Mode (Start-up device with FRC, then automatically switch to user-selected oscillator source when ready)
+55:                
+56:                // FOSC
+57:                #pragma config POSCMD = XT              // XT Oscillator Mode
+58:                #pragma config OSCIOFNC = OFF           // OSC2 Pin Function (OSC2 pin has clock out function)
+59:                #pragma config IOL1WAY = ON             // Peripheral Pin Select Configuration (Allow Only One Re-configuration)
+60:                #pragma config FCKSM = CSECMD           // This bit is extremely important? if set to CSDCMD there will be no PWM signal!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+61:                //#pragma config FCKSM = CSDCMD         // Clock Switching and Monitor (Both Clock Switching and Fail-Safe Clock Monitor are disabled)
+62:                
+63:                // FWDT
+64:                #pragma config WDTPOST = PS32768        // Watchdog Timer Postscaler (1:32,768)
+65:                #pragma config WDTPRE = PR128           // WDT Prescaler (1:128)
+66:                #pragma config WINDIS = OFF             // Watchdog Timer Window (Watchdog Timer in Non-Window mode)
+67:                #pragma config FWDTEN = OFF             // Watchdog Timer Enable (Watchdog timer always enabled)
+68:                
+69:                // FPOR
+70:                #pragma config FPWRT = PWR128           // POR Timer Value (128ms)
+71:                #pragma config ALTI2C = OFF             // Alternate I2C  pins (I2C mapped to SDA1/SCL1 pins)
+72:                #pragma config LPOL = ON                // Motor Control PWM Low Side Polarity bit (PWM module low side output pins have active-high output polarity)
+73:                #pragma config HPOL = ON                // Motor Control PWM High Side Polarity bit (PWM module high side output pins have active-high output polarity)
+74:                #pragma config PWMPIN = OFF             // Motor Control PWM Module Pin Mode bit (PWM module pins controlled by PORT register at device Reset)
+75:                
+76:                // FICD
+77:                #pragma config ICS = PGD3               // Comm Channel Select (Communicate on PGC3/EMUC3 and PGD3/EMUD3)
+78:                #pragma config JTAGEN = OFF             // JTAG Port Enable (JTAG is Disabled)
+79:                
+80:                /******************************************************************************/
+81:                /* Global Variable Declaration                                                */
+82:                /******************************************************************************/
+83:                /* i.e. uint16_t <variable_name>; */
+84:                /* Assign 32x8word Message Buffers for ECAN1 in DMA RAM */
+85:                #ifdef MANUAL
+86:                unsigned int ecan1MsgBuf[32][8] __attribute__((space(dma)));
+87:                #endif
+88:                
+89:                ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
+90:                mID canTxMessage;
+91:                mID canRxMessage;
+92:                
+93:                char ReceivedChar;
+94:                char TransmitChar;
+95:                bool go = 0;
+96:                bool stop = 0;
+97:                bool direction = 0;
+98:                
+99:                int count[2]={0,0};
+100:               int motor = 0;
+101:               int i=0;
+102:               int position = 0;
+103:               int posHigh = 0;
+104:               //int posLow = 0;
+105:               int QEIPosHigh = 0;
+106:               int QEIPosLow = 0;
+107:               /******************************************************************************/
+108:               /* Main Program                                                               */
+109:               /******************************************************************************/
+110:               int main(void)
+111:               {   
+000A30  FA0002     LNK #0x2
+112:                   
+113:                   /* Configure the oscillator for the device */
+114:                   ConfigureOscillator();
+000A32  070105     RCALL ConfigureOscillator
+115:                   /* Initialize IO ports and peripherals */
+116:                   InitApp();
+000A34  07008D     RCALL InitApp
+117:                   /* TODO <INSERT USER APPLICATION CODE HERE> */
+118:               
+119:                   /* configure and send a message */
+120:                   canTxMessage.message_type=CAN_MSG_DATA;
+000A36  208190     MOV #0x819, W0
+000A38  B3C011     MOV.B #0x1, W1
+000A3A  784801     MOV.B W1, [W0]
+121:                   //canTxMessage.message_type=CAN_MSG_RTR;
+122:                   canTxMessage.frame_type=CAN_FRAME_EXT;
+000A3C  2081A0     MOV #0x81A, W0
+000A3E  B3C031     MOV.B #0x3, W1
+000A40  784801     MOV.B W1, [W0]
+123:                   //canTxMessage.frame_type=CAN_FRAME_STD;
+124:                   canTxMessage.buffer=0;
+000A42  2081B0     MOV #0x81B, W0
+000A44  EB4080     CLR.B W1
+000A46  784801     MOV.B W1, [W0]
+125:                   canTxMessage.id=0x123;
+000A48  201230     MOV #0x123, W0
+000A4A  200001     MOV #0x0, W1
+000A4C  8840E0     MOV W0, 0x81C
+000A4E  8840F1     MOV W1, 0x81E
+126:                   canTxMessage.data[0]=0x55;
+000A50  208200     MOV #0x820, W0
+000A52  B3C551     MOV.B #0x55, W1
+000A54  784801     MOV.B W1, [W0]
+127:                   canTxMessage.data[1]=0x55;
+000A56  208210     MOV #0x821, W0
+000A58  B3C551     MOV.B #0x55, W1
+000A5A  784801     MOV.B W1, [W0]
+128:                   canTxMessage.data[2]=0x55;
+000A5C  208220     MOV #0x822, W0
+000A5E  B3C551     MOV.B #0x55, W1
+000A60  784801     MOV.B W1, [W0]
+129:                   canTxMessage.data[3]=0x55;
+000A62  208230     MOV #0x823, W0
+000A64  B3C551     MOV.B #0x55, W1
+000A66  784801     MOV.B W1, [W0]
+130:                   canTxMessage.data[4]=0x55;
+000A68  208240     MOV #0x824, W0
+000A6A  B3C551     MOV.B #0x55, W1
+000A6C  784801     MOV.B W1, [W0]
+131:                   canTxMessage.data[5]=0x55;
+000A6E  208250     MOV #0x825, W0
+000A70  B3C551     MOV.B #0x55, W1
+000A72  784801     MOV.B W1, [W0]
+132:                   canTxMessage.data[6]=0x55;
+000A74  208260     MOV #0x826, W0
+000A76  B3C551     MOV.B #0x55, W1
+000A78  784801     MOV.B W1, [W0]
+133:                   canTxMessage.data[7]=0x55;
+000A7A  208270     MOV #0x827, W0
+000A7C  B3C551     MOV.B #0x55, W1
+000A7E  784801     MOV.B W1, [W0]
+134:                   canTxMessage.data_length=8;
+000A80  208280     MOV #0x828, W0
+000A82  B3C081     MOV.B #0x8, W1
+000A84  784801     MOV.B W1, [W0]
+135:               
+136:                   /* Delay for a second */
+137:                   Delay(Delay_1S_Cnt);
+000A86  234F70     MOV #0x34F7, W0
+000A88  070105     RCALL Delay
+138:               
+139:                   /* send a CAN message */
+140:                   sendECAN(&canTxMessage);
+000A8A  208180     MOV #0x818, W0
+000A8C  07FCDE     RCALL sendECAN
+000A8E  370001     BRA 0xA92
+141:                   
+142:                   while(1)
+143:                   {
+144:                       if(U1STAbits.PERR==1)
+000A92  801110     MOV U1STA, W0
+000A94  600068     AND W0, #0x8, W0
+000A96  E00000     CP0 W0
+000A98  320001     BRA Z, 0xA9C
+145:                       {
+146:                           continue;
+000A9A  370059     BRA 0xB4E
+147:                       }
+148:                       if(U1STAbits.OERR==1)
+000A9C  801110     MOV U1STA, W0
+000A9E  600062     AND W0, #0x2, W0
+000AA0  E00000     CP0 W0
+000AA2  320002     BRA Z, 0xAA8
+149:                       {
+150:                           //LATAbits.LATA0=1;
+151:                           U1STAbits.OERR=0;
+000AA4  A92222     BCLR U1STA, #1
+152:                           //receivedNumber++;
+153:                           continue;
+000AA6  370053     BRA 0xB4E
+154:                       }
+155:                       if(U1STAbits.URXDA==1)
+000AA8  801110     MOV U1STA, W0
+156:                       {   
+157:                           //LATAbits.LATA1=1;
+158:                       }
+159:                       if(stop){
+000AAA  BFC803     MOV.B stop, WREG
+000AAC  E00400     CP0.B W0
+000AAE  320001     BRA Z, 0xAB2
+160:                       LATAbits.LATA7=1;
+000AB0  A8E2C4     BSET LATA, #7
+161:                       }
+162:                       
+163:                       if(go){
+000AB2  BFC802     MOV.B go, WREG
+000AB4  E00400     CP0.B W0
+000AB6  320001     BRA Z, 0xABA
+164:                       LATAbits.LATA7=0;
+000AB8  A9E2C4     BCLR LATA, #7
+165:                       }
+166:                         
+167:                       if(i==0)
+000ABA  804060     MOV i, W0
+000ABC  E00000     CP0 W0
+000ABE  3A000B     BRA NZ, 0xAD6
+168:                       {            
+169:                           motor = count[0];
+000AC0  804030     MOV count, W0
+000AC2  884050     MOV W0, motor
+170:                           motor = motor & 0x00FF;
+000AC4  804051     MOV motor, W1
+000AC6  200FF0     MOV #0xFF, W0
+000AC8  608000     AND W1, W0, W0
+000ACA  884050     MOV W0, motor
+171:                           motor = motor | (count[1]<<8);
+000ACC  804040     MOV 0x808, W0
+000ACE  DD00C8     SL W0, #8, W1
+000AD0  804050     MOV motor, W0
+000AD2  700001     IOR W0, W1, W0
+000AD4  884050     MOV W0, motor
+172:                       }
+173:                       
+174:                       {
+175:                           int temp=0;
+000AD6  EB0000     CLR W0
+000AD8  780F00     MOV W0, [W14]
+176:                           temp = motor & 0x8000;
+000ADA  804051     MOV motor, W1
+000ADC  280000     MOV #0x8000, W0
+000ADE  608F00     AND W1, W0, [W14]
+177:                           if(temp)
+000AE0  78001E     MOV [W14], W0
+000AE2  E00000     CP0 W0
+000AE4  320006     BRA Z, 0xAF2
+178:                           {
+179:                               motor=motor & 0x7fff ;
+000AE6  804051     MOV motor, W1
+000AE8  27FFF0     MOV #0x7FFF, W0
+000AEA  608000     AND W1, W0, W0
+000AEC  884050     MOV W0, motor
+180:                               //motor[j]=~(motor[j]-1);
+181:                               direction=0;
+000AEE  EF6804     CLR.B direction
+000AF0  370002     BRA 0xAF6
+182:                           }else{direction=1;}
+000AF2  B3C010     MOV.B #0x1, W0
+000AF4  B7E804     MOV.B WREG, direction
+183:                       }
+184:                       LATAbits.LATA10=direction;
+000AF6  BFC804     MOV.B direction, WREG
+000AF8  FB8000     ZE W0, W0
+000AFA  600061     AND W0, #0x1, W0
+000AFC  DD004A     SL W0, #10, W0
+000AFE  801622     MOV LATA, W2
+000B00  2FBFF1     MOV #0xFBFF, W1
+000B02  610081     AND W2, W1, W1
+000B04  700001     IOR W0, W1, W0
+000B06  881620     MOV W0, LATA
+185:                       P2DC1=(5*motor/3);
+000B08  804050     MOV motor, W0
+000B0A  B90065     MUL.SU W0, #5, W0
+000B0C  780100     MOV W0, W2
+000B0E  255560     MOV #0x5556, W0
+000B10  B99000     MUL.SS W2, W0, W0
+000B12  DE914F     ASR W2, #15, W2
+000B14  508002     SUB W1, W2, W0
+000B16  882EB0     MOV W0, P2DC1
+186:                       
+187:                       if(posHigh < 0)
+000B18  804080     MOV posHigh, W0
+000B1A  E00000     CP0 W0
+000B1C  3D0008     BRA GE, 0xB2E
+188:                       {
+189:                           QEIPosHigh = (~posHigh) | 0x8000; 
+000B1E  804080     MOV posHigh, W0
+000B20  EA8000     COM W0, W0
+000B22  A0F000     BSET W0, #15
+000B24  884090     MOV W0, QEIPosHigh
+190:                           QEIPosLow = (~POS1CNT +1);
+000B26  800F20     MOV POS1CNT, W0
+000B28  EA0000     NEG W0, W0
+000B2A  8840A0     MOV W0, QEIPosLow
+000B2C  370006     BRA 0xB3A
+191:                       }
+192:                       else
+193:                       {
+194:                           QEIPosHigh = posHigh & 0x7fff;
+000B2E  804081     MOV posHigh, W1
+000B30  27FFF0     MOV #0x7FFF, W0
+000B32  608000     AND W1, W0, W0
+000B34  884090     MOV W0, QEIPosHigh
+195:                           QEIPosLow = POS1CNT;
+000B36  800F20     MOV POS1CNT, W0
+000B38  8840A0     MOV W0, QEIPosLow
+196:                       }
+197:               
+198:                       /* check to see when a message is received and move the message 
+199:               		into RAM and parse the message */ 
+200:               		if(canRxMessage.buffer_status==CAN_BUF_FULL)
+000B3A  2082A0     MOV #0x82A, W0
+000B3C  784010     MOV.B [W0], W0
+000B3E  504FE5     SUB.B W0, #0x5, [W15]
+000B40  3AFFA7     BRA NZ, 0xA90
+201:               		{
+202:               			rxECAN(&canRxMessage);			
+000B42  2082A0     MOV #0x82A, W0
+000B44  07FD89     RCALL rxECAN
+203:               			/* reset the flag when done */
+204:               			canRxMessage.buffer_status=CAN_BUF_EMPTY;
+000B46  2082A0     MOV #0x82A, W0
+000B48  B3C061     MOV.B #0x6, W1
+000B4A  784801     MOV.B W1, [W0]
+205:               		}
+206:               		else
+207:               		;
+208:               #ifdef MANUAL
+209:                       {
+210:                           /* WRITE TO MESSAGE BUFFER 0 */
+211:                           /* CiTRBnSID = 0bxxx1 0010 0011 1101
+212:                           SID<10:0> : 0b100 1000 1111
+213:                           SRR = 0b0
+214:                           IDE = 0b1 */
+215:                           ecan1MsgBuf[0][0] = 0x123D;
+216:               
+217:                           /* CiTRBnEID = 0bxxxx 1111 0000 0000
+218:                           EID<17:6> = 0b1111 0000 0000 */
+219:                           ecan1MsgBuf[0][1] = 0x0F00;
+220:               
+221:                           /* CiTRBnDLC = 0b0000 1100 xxx0 1000
+222:                           EID<5:0> = 0b000011
+223:                           RTR = 0b0
+224:                           RB1 = 0b0
+225:                           RB0 = 0b0
+226:                           DLC = 0b1000 */
+227:                           ecan1MsgBuf[0][2] = 0x0C08;
+228:                           /* WRITE MESSAGE DATA BYTES */
+229:                           ecan1MsgBuf[0][3] = 0xabcd;
+230:                           ecan1MsgBuf[0][4] = 0xabcd;
+231:                           ecan1MsgBuf[0][5] = 0xabcd;
+232:                           ecan1MsgBuf[0][6] = 0xabcd;
+233:                       }
+234:               
+235:                       /* REQUEST MESSAGE BUFFER 0 TRANSMISSION */
+236:                       C1TR01CONbits.TXREQ0 = 0x1;
+237:               #endif        
+238:                   };
+000A90  000000     NOP
+000B4C  37FFA2     BRA 0xA92
+000B4E  37FFA1     BRA 0xA92
+239:               }
+240:               
+241:               void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
+242:               {
+0002C8  BE9F80     MOV.D W0, [W15++]
+0002CA  781F82     MOV W2, [W15++]
+0002CC  F80034     PUSH PSVPAG
+0002CE  200000     MOV #0x0, W0
+0002D0  8801A0     MOV W0, PSVPAG
+0002D2  FA0000     LNK #0x0
+243:                   ReceivedChar = U1RXREG;
+0002D4  801130     MOV U1RXREG, W0
+0002D6  784000     MOV.B W0, W0
+0002D8  B7E800     MOV.B WREG, ReceivedChar
+244:                   U1TXREG = ReceivedChar;
+0002DA  BFC800     MOV.B ReceivedChar, WREG
+0002DC  FB0000     SE W0, W0
+0002DE  881120     MOV W0, U1TXREG
+245:                   if(ReceivedChar == 'g'){go = 1;}
+0002E0  208001     MOV #0x800, W1
+0002E2  784091     MOV.B [W1], W1
+0002E4  B3C670     MOV.B #0x67, W0
+0002E6  50CF80     SUB.B W1, W0, [W15]
+0002E8  3A0003     BRA NZ, 0x2F0
+0002EA  B3C010     MOV.B #0x1, W0
+0002EC  B7E802     MOV.B WREG, go
+0002EE  370021     BRA 0x332
+246:                   else if(ReceivedChar == 's'){stop = 1; go = 0;}
+0002F0  208001     MOV #0x800, W1
+0002F2  784091     MOV.B [W1], W1
+0002F4  B3C730     MOV.B #0x73, W0
+0002F6  50CF80     SUB.B W1, W0, [W15]
+0002F8  3A0004     BRA NZ, 0x302
+0002FA  B3C010     MOV.B #0x1, W0
+0002FC  B7E803     MOV.B WREG, stop
+0002FE  EF6802     CLR.B go
+000300  370018     BRA 0x332
+247:                   else 
+248:                   {
+249:                       
+250:                   if(ReceivedChar == 'u'){ U1TXREG = 'u'; i = 0;}
+000302  208001     MOV #0x800, W1
+000304  784091     MOV.B [W1], W1
+000306  B3C750     MOV.B #0x75, W0
+000308  50CF80     SUB.B W1, W0, [W15]
+00030A  3A0004     BRA NZ, 0x314
+00030C  200750     MOV #0x75, W0
+00030E  881120     MOV W0, U1TXREG
+000310  EF280C     CLR i
+000312  37000F     BRA 0x332
+251:               
+252:                   else
+253:                   {
+254:                       count[i] = ReceivedChar;
+000314  804060     MOV i, W0
+000316  208001     MOV #0x800, W1
+000318  784091     MOV.B [W1], W1
+00031A  FB0081     SE W1, W1
+00031C  400100     ADD W0, W0, W2
+00031E  208060     MOV #0x806, W0
+000320  410000     ADD W2, W0, W0
+000322  780801     MOV W1, [W0]
+255:                       i++;
+000324  804060     MOV i, W0
+000326  E80000     INC W0, W0
+000328  884060     MOV W0, i
+256:                       if(i>=2) i = 0;
+00032A  804060     MOV i, W0
+00032C  500FE1     SUB W0, #0x1, [W15]
+00032E  340001     BRA LE, 0x332
+000330  EF280C     CLR i
+257:                   }
+258:                   
+259:                   }
+260:                   U1TXREG = QEIPosHigh >> 8;
+000332  804090     MOV QEIPosHigh, W0
+000334  DE8048     ASR W0, #8, W0
+000336  881120     MOV W0, U1TXREG
+261:                   U1TXREG = QEIPosHigh;
+000338  804090     MOV QEIPosHigh, W0
+00033A  881120     MOV W0, U1TXREG
+262:                   U1TXREG = QEIPosLow >> 8;
+00033C  8040A0     MOV QEIPosLow, W0
+00033E  DE8048     ASR W0, #8, W0
+000340  881120     MOV W0, U1TXREG
+263:                   U1TXREG = QEIPosLow;
+000342  8040A0     MOV QEIPosLow, W0
+000344  881120     MOV W0, U1TXREG
+264:                   IFS0bits.U1RXIF = 0;
+000346  A96085     BCLR 0x85, #3
+265:               }
+000348  FA8000     ULNK
+00034A  F90034     POP PSVPAG
+00034C  78014F     MOV [--W15], W2
+00034E  BE004F     MOV.D [--W15], W0
+000350  064000     RETFIE
+266:               
+267:               void __attribute__((interrupt, auto_psv)) _U1TXInterrupt(void)
+268:               {
+000352  F80034     PUSH PSVPAG
+000354  781F88     MOV W8, [W15++]
+000356  200008     MOV #0x0, W8
+000358  8801A8     MOV W8, PSVPAG
+00035A  78044F     MOV [--W15], W8
+00035C  FA0000     LNK #0x0
+269:                   IFS0bits.U1TXIF = 0; // clear TX interrupt flag
+00035E  A98085     BCLR 0x85, #4
+270:                   //U1TXREG = 'b'; // Transmit one character
+271:               }
+000360  FA8000     ULNK
+000362  F90034     POP PSVPAG
+000364  064000     RETFIE
+272:               
+273:               void __attribute__((interrupt, auto_psv)) _QEI1Interrupt(void)
+274:               {
+000366  BE9F80     MOV.D W0, [W15++]
+000368  F80034     PUSH PSVPAG
+00036A  200000     MOV #0x0, W0
+00036C  8801A0     MOV W0, PSVPAG
+00036E  FA0000     LNK #0x0
+275:                   U1TXREG = QEIPosHigh >> 8;
+000370  804090     MOV QEIPosHigh, W0
+000372  DE8048     ASR W0, #8, W0
+000374  881120     MOV W0, U1TXREG
+276:                   U1TXREG = QEIPosHigh;
+000376  804090     MOV QEIPosHigh, W0
+000378  881120     MOV W0, U1TXREG
+277:                   U1TXREG = QEIPosLow >> 8;
+00037A  8040A0     MOV QEIPosLow, W0
+00037C  DE8048     ASR W0, #8, W0
+00037E  881120     MOV W0, U1TXREG
+278:                   U1TXREG = QEIPosLow;
+000380  8040A0     MOV QEIPosLow, W0
+000382  881120     MOV W0, U1TXREG
+279:                   //U1TXREG = QEI1CONbits.UPDN;
+280:                   
+281:                   if(QEI1CONbits.UPDN == 1){posHigh += 1;}
+000384  800F01     MOV QEI1CON, W1
+000386  208000     MOV #0x800, W0
+000388  608000     AND W1, W0, W0
+00038A  E00000     CP0 W0
+00038C  320004     BRA Z, 0x396
+00038E  804080     MOV posHigh, W0
+000390  E80000     INC W0, W0
+000392  884080     MOV W0, posHigh
+000394  370003     BRA 0x39C
+282:                   else {posHigh -= 1;}
+000396  804080     MOV posHigh, W0
+000398  E90000     DEC W0, W0
+00039A  884080     MOV W0, posHigh
+283:                   IFS3bits.QEI1IF = 0;
+00039C  A9408B     BCLR 0x8B, #2
+284:               }
+00039E  FA8000     ULNK
+0003A0  F90034     POP PSVPAG
+0003A2  BE004F     MOV.D [--W15], W0
+0003A4  064000     RETFIE
+285:               
+286:               void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)  
+287:               {
+0003A6  BE9F80     MOV.D W0, [W15++]
+0003A8  FA0000     LNK #0x0
+288:               	/* check to see if the interrupt is caused by receive */     	 
+289:                   if(C1INTFbits.RBIF)
+0003AA  802050     MOV C1INTF, W0
+0003AC  600062     AND W0, #0x2, W0
+0003AE  E00000     CP0 W0
+0003B0  320022     BRA Z, 0x3F6
+290:                   {
+291:               	    /* check to see if buffer 1 is full */
+292:               	    if(C1RXFUL1bits.RXFUL1)
+0003B2  802100     MOV C1RXFUL1, W0
+0003B4  600062     AND W0, #0x2, W0
+0003B6  E00000     CP0 W0
+0003B8  320007     BRA Z, 0x3C8
+293:               	    {			
+294:               			/* set the buffer full flag and the buffer received flag */
+295:               			canRxMessage.buffer_status=CAN_BUF_FULL;
+0003BA  2082A0     MOV #0x82A, W0
+0003BC  B3C051     MOV.B #0x5, W1
+0003BE  784801     MOV.B W1, [W0]
+296:               			canRxMessage.buffer=1;	
+0003C0  2082D0     MOV #0x82D, W0
+0003C2  B3C011     MOV.B #0x1, W1
+0003C4  784801     MOV.B W1, [W0]
+0003C6  370015     BRA 0x3F2
+297:               		}		
+298:               		/* check to see if buffer 2 is full */
+299:               		else if(C1RXFUL1bits.RXFUL2)
+0003C8  802100     MOV C1RXFUL1, W0
+0003CA  600064     AND W0, #0x4, W0
+0003CC  E00000     CP0 W0
+0003CE  320007     BRA Z, 0x3DE
+300:               		{
+301:               			/* set the buffer full flag and the buffer received flag */
+302:               			canRxMessage.buffer_status=CAN_BUF_FULL;
+0003D0  2082A0     MOV #0x82A, W0
+0003D2  B3C051     MOV.B #0x5, W1
+0003D4  784801     MOV.B W1, [W0]
+303:               			canRxMessage.buffer=2;					
+0003D6  2082D0     MOV #0x82D, W0
+0003D8  B3C021     MOV.B #0x2, W1
+0003DA  784801     MOV.B W1, [W0]
+0003DC  37000A     BRA 0x3F2
+304:               		}
+305:               		/* check to see if buffer 3 is full */
+306:               		else if(C1RXFUL1bits.RXFUL3)
+0003DE  802100     MOV C1RXFUL1, W0
+0003E0  600068     AND W0, #0x8, W0
+0003E2  E00000     CP0 W0
+0003E4  320006     BRA Z, 0x3F2
+307:               		{
+308:               			/* set the buffer full flag and the buffer received flag */
+309:               			canRxMessage.buffer_status=CAN_BUF_FULL;
+0003E6  2082A0     MOV #0x82A, W0
+0003E8  B3C051     MOV.B #0x5, W1
+0003EA  784801     MOV.B W1, [W0]
+310:               			canRxMessage.buffer=3;					
+0003EC  2082D0     MOV #0x82D, W0
+0003EE  B3C031     MOV.B #0x3, W1
+0003F0  784801     MOV.B W1, [W0]
+311:               		}
+312:               		else;
+313:               		/* clear flag */
+314:               		C1INTFbits.RBIF = 0;
+0003F2  A9240A     BCLR C1INTF, #1
+0003F4  370005     BRA 0x400
+315:               	}
+316:               	else if(C1INTFbits.TBIF)
+0003F6  802050     MOV C1INTF, W0
+0003F8  600061     AND W0, #0x1, W0
+0003FA  E00000     CP0 W0
+0003FC  320001     BRA Z, 0x400
+317:                   {
+318:               	    /* clear flag */
+319:               		C1INTFbits.TBIF = 0;	    
+0003FE  A9040A     BCLR C1INTF, #0
+320:               	}
+321:               	else;
+322:               	
+323:               	/* clear interrupt flag */
+324:               	IFS2bits.C1IF=0;
+000400  A96088     BCLR IFS2, #3
+325:                   
+326:               }
+000402  FA8000     ULNK
+000404  BE004F     MOV.D [--W15], W0
+000406  064000     RETFIE
+---  /home/dracula/MPLABXProjects/QEI/ecan.c  -----------------------------------------------------------
+1:                 /* 
+2:                  * File:   ecan.c   
+3:                  * Author: dracula
+4:                  * Comments:
+5:                  * Revision history: EDITION 0.1 
+6:                  */
+7:                 
+8:                 /******************************************************************************/
+9:                 /* Files to Include                                                           */
+10:                /******************************************************************************/
+11:                
+12:                /* Device header file */
+13:                #if defined(__XC16__)
+14:                    #include <xc.h>
+15:                #elif defined(__C30__)
+16:                    #if defined(__dsPIC33E__)
+17:                    	#include <p33Exxxx.h>
+18:                    #elif defined(__dsPIC33F__)
+19:                    	#include <p33Fxxxx.h>
+20:                    #endif
+21:                #endif
+22:                
+23:                #include "ecan.h"
+24:                
+25:                void sendECAN(mID *message)
+26:                {
+00044A  FA000E     LNK #0xE
+00044C  980760     MOV W0, [W14+12]
+27:                	unsigned long word0=0;
+00044E  B80060     MUL.UU W0, #0, W0
+000450  BE8F00     MOV.D W0, [W14]
+28:                	unsigned long word1=0;
+000452  B80060     MUL.UU W0, #0, W0
+000454  980720     MOV W0, [W14+4]
+000456  980731     MOV W1, [W14+6]
+29:                	unsigned long word2=0;
+000458  B80060     MUL.UU W0, #0, W0
+00045A  980740     MOV W0, [W14+8]
+00045C  980751     MOV W1, [W14+10]
+30:                	
+31:                	/*
+32:                	Message Format: 
+33:                	Word0 : 0bUUUx xxxx xxxx xxxx
+34:                			     |____________|||
+35:                 					SID10:0   SRR IDE(bit 0)     
+36:                	Word1 : 0bUUUU xxxx xxxx xxxx
+37:                			   	   |____________|
+38:                						EID17:6
+39:                	Word2 : 0bxxxx xxx0 UUU0 xxxx
+40:                			  |_____||	     |__|
+41:                			  EID5:0 RTR   	  DLC
+42:                	
+43:                	Remote Transmission Request Bit for standard frames 
+44:                	SRR->	"0"	 Normal Message 
+45:                			"1"  Message will request remote transmission
+46:                	Substitute Remote Request Bit for extended frames 
+47:                	SRR->	should always be set to "1" as per CAN specification
+48:                	
+49:                	Extended  Identifier Bit			
+50:                	IDE-> 	"0"  Message will transmit standard identifier
+51:                	   		"1"  Message will transmit extended identifier
+52:                	
+53:                	Remote Transmission Request Bit for extended frames 
+54:                	RTR-> 	"0"  Message transmitted is a normal message
+55:                			"1"  Message transmitted is a remote message
+56:                	Don't care for standard frames 
+57:                	*/
+58:                		
+59:                	/* check to see if the message has an extended ID */
+60:                	if(message->frame_type==CAN_FRAME_EXT)
+00045E  90006E     MOV [W14+12], W0
+000460  904020     MOV.B [W0+2], W0
+000462  504FE3     SUB.B W0, #0x3, [W15]
+000464  3A004A     BRA NZ, 0x4FA
+61:                	{
+62:                		/* get the extended message id EID28..18*/		
+63:                		word0=(message->id & 0x1FFC0000) >> 16;			
+000466  90006E     MOV [W14+12], W0
+000468  900120     MOV [W0+4], W2
+00046A  9001B0     MOV [W0+6], W3
+00046C  200000     MOV #0x0, W0
+00046E  21FFC1     MOV #0x1FFC, W1
+000470  780202     MOV W2, W4
+000472  780103     MOV W3, W2
+000474  780180     MOV W0, W3
+000476  780001     MOV W1, W0
+000478  620203     AND W4, W3, W4
+00047A  610000     AND W2, W0, W0
+00047C  EB0080     CLR W1
+00047E  DD00C0     SL W0, #0, W1
+000480  200000     MOV #0x0, W0
+000482  BE0100     MOV.D W0, W2
+000484  B82061     MUL.UU W4, #1, W0
+000486  710100     IOR W2, W0, W2
+000488  718181     IOR W3, W1, W3
+00048A  DE1840     LSR W3, #0, W0
+00048C  200001     MOV #0x0, W1
+00048E  BE8F00     MOV.D W0, [W14]
+64:                		/* set the SRR and IDE bit */
+65:                		word0=word0+0x0003;
+000490  200032     MOV #0x3, W2
+000492  200003     MOV #0x0, W3
+000494  410F1E     ADD W2, [W14], [W14]
+000496  49975E     ADDC W3, [++W14], [W14--]
+66:                		/* the the value of EID17..6 */
+67:                		word1=(message->id & 0x0003FFC0) >> 6;
+000498  90006E     MOV [W14+12], W0
+00049A  900120     MOV [W0+4], W2
+00049C  9001B0     MOV [W0+6], W3
+00049E  2FFC00     MOV #0xFFC0, W0
+0004A0  200031     MOV #0x3, W1
+0004A2  780202     MOV W2, W4
+0004A4  780103     MOV W3, W2
+0004A6  780180     MOV W0, W3
+0004A8  780001     MOV W1, W0
+0004AA  620203     AND W4, W3, W4
+0004AC  610000     AND W2, W0, W0
+0004AE  EB0080     CLR W1
+0004B0  DD00C0     SL W0, #0, W1
+0004B2  200000     MOV #0x0, W0
+0004B4  BE0100     MOV.D W0, W2
+0004B6  B82061     MUL.UU W4, #1, W0
+0004B8  710100     IOR W2, W0, W2
+0004BA  718181     IOR W3, W1, W3
+0004BC  DD1A4A     SL W3, #10, W4
+0004BE  DE1046     LSR W2, #6, W0
+0004C0  720000     IOR W4, W0, W0
+0004C2  DE18C6     LSR W3, #6, W1
+0004C4  980720     MOV W0, [W14+4]
+0004C6  980731     MOV W1, [W14+6]
+68:                		/* get the value of EID5..0 for word 2 */
+69:                		word2=(message->id & 0x0000003F) << 10;			
+0004C8  90006E     MOV [W14+12], W0
+0004CA  9000B0     MOV [W0+6], W1
+0004CC  900020     MOV [W0+4], W0
+0004CE  DD094A     SL W1, #10, W2
+0004D0  DE01C6     LSR W0, #6, W3
+0004D2  710183     IOR W2, W3, W3
+0004D4  DD014A     SL W0, #10, W2
+0004D6  2FFFF0     MOV #0xFFFF, W0
+0004D8  200001     MOV #0x0, W1
+0004DA  780202     MOV W2, W4
+0004DC  780103     MOV W3, W2
+0004DE  780180     MOV W0, W3
+0004E0  780001     MOV W1, W0
+0004E2  620203     AND W4, W3, W4
+0004E4  610000     AND W2, W0, W0
+0004E6  EB0080     CLR W1
+0004E8  DD00C0     SL W0, #0, W1
+0004EA  200000     MOV #0x0, W0
+0004EC  BE0100     MOV.D W0, W2
+0004EE  B82061     MUL.UU W4, #1, W0
+0004F0  710100     IOR W2, W0, W2
+0004F2  718181     IOR W3, W1, W3
+0004F4  980742     MOV W2, [W14+8]
+0004F6  980753     MOV W3, [W14+10]
+0004F8  370017     BRA 0x528
+70:                	}	
+71:                	else
+72:                	{
+73:                		/* get the SID */
+74:                		word0=((message->id & 0x000007FF) << 2);	
+0004FA  90006E     MOV [W14+12], W0
+0004FC  900120     MOV [W0+4], W2
+0004FE  9001B0     MOV [W0+6], W3
+000500  207FF0     MOV #0x7FF, W0
+000502  200001     MOV #0x0, W1
+000504  780202     MOV W2, W4
+000506  780103     MOV W3, W2
+000508  780180     MOV W0, W3
+00050A  780001     MOV W1, W0
+00050C  620203     AND W4, W3, W4
+00050E  610000     AND W2, W0, W0
+000510  EB0080     CLR W1
+000512  DD00C0     SL W0, #0, W1
+000514  200000     MOV #0x0, W0
+000516  BE0100     MOV.D W0, W2
+000518  B82061     MUL.UU W4, #1, W0
+00051A  710100     IOR W2, W0, W2
+00051C  718181     IOR W3, W1, W3
+00051E  DD1842     SL W3, #2, W0
+000520  DE10CE     LSR W2, #14, W1
+000522  700081     IOR W0, W1, W1
+000524  DD1042     SL W2, #2, W0
+000526  BE8F00     MOV.D W0, [W14]
+75:                	}
+76:                	/* check to see if the message is an RTR message */
+77:                	if(message->message_type==CAN_MSG_RTR)
+000528  90006E     MOV [W14+12], W0
+00052A  904010     MOV.B [W0+1], W0
+00052C  504FE2     SUB.B W0, #0x2, [W15]
+00052E  3A0024     BRA NZ, 0x578
+78:                	{		
+79:                		if(message->frame_type==CAN_FRAME_EXT)
+000530  90006E     MOV [W14+12], W0
+000532  904020     MOV.B [W0+2], W0
+000534  504FE3     SUB.B W0, #0x3, [W15]
+000536  3A0006     BRA NZ, 0x544
+80:                			word2=word2 | 0x0200;
+000538  90004E     MOV [W14+8], W0
+00053A  9000DE     MOV [W14+10], W1
+00053C  A09000     BSET W0, #9
+00053E  980740     MOV W0, [W14+8]
+000540  980751     MOV W1, [W14+10]
+000542  370001     BRA 0x546
+81:                		else
+82:                			word0=word0 | 0x0002;	
+000544  A0101E     BSET [W14], #1
+83:                								
+84:                		ecan1MsgBuf[message->buffer][0]=word0;
+000546  90006E     MOV [W14+12], W0
+000548  904030     MOV.B [W0+3], W0
+00054A  FB8000     ZE W0, W0
+00054C  78009E     MOV [W14], W1
+00054E  DD0144     SL W0, #4, W2
+000550  246000     MOV #0x4600, W0
+000552  410000     ADD W2, W0, W0
+000554  780801     MOV W1, [W0]
+85:                		ecan1MsgBuf[message->buffer][1]=word1;
+000556  90006E     MOV [W14+12], W0
+000558  904030     MOV.B [W0+3], W0
+00055A  FB8000     ZE W0, W0
+00055C  9000AE     MOV [W14+4], W1
+00055E  DD0144     SL W0, #4, W2
+000560  246020     MOV #0x4602, W0
+000562  410000     ADD W2, W0, W0
+000564  780801     MOV W1, [W0]
+86:                		ecan1MsgBuf[message->buffer][2]=word2;
+000566  90006E     MOV [W14+12], W0
+000568  904030     MOV.B [W0+3], W0
+00056A  FB8000     ZE W0, W0
+00056C  9000CE     MOV [W14+8], W1
+00056E  DD0144     SL W0, #4, W2
+000570  246040     MOV #0x4604, W0
+000572  410000     ADD W2, W0, W0
+000574  780801     MOV W1, [W0]
+000576  37006D     BRA 0x652
+87:                	}
+88:                	else
+89:                	{
+90:                		word2=word2+(message->data_length & 0x0F);
+000578  90006E     MOV [W14+12], W0
+00057A  905000     MOV.B [W0+16], W0
+00057C  FB8100     ZE W0, W2
+00057E  EB0180     CLR W3
+000580  2000F0     MOV #0xF, W0
+000582  200001     MOV #0x0, W1
+000584  780202     MOV W2, W4
+000586  780103     MOV W3, W2
+000588  780180     MOV W0, W3
+00058A  780001     MOV W1, W0
+00058C  620203     AND W4, W3, W4
+00058E  610000     AND W2, W0, W0
+000590  EB0080     CLR W1
+000592  DD00C0     SL W0, #0, W1
+000594  200000     MOV #0x0, W0
+000596  BE0100     MOV.D W0, W2
+000598  B82061     MUL.UU W4, #1, W0
+00059A  710100     IOR W2, W0, W2
+00059C  718181     IOR W3, W1, W3
+00059E  90004E     MOV [W14+8], W0
+0005A0  9000DE     MOV [W14+10], W1
+0005A2  410000     ADD W2, W0, W0
+0005A4  498081     ADDC W3, W1, W1
+0005A6  980740     MOV W0, [W14+8]
+0005A8  980751     MOV W1, [W14+10]
+91:                		ecan1MsgBuf[message->buffer][0]=word0;
+0005AA  90006E     MOV [W14+12], W0
+0005AC  904030     MOV.B [W0+3], W0
+0005AE  FB8000     ZE W0, W0
+0005B0  78009E     MOV [W14], W1
+0005B2  DD0144     SL W0, #4, W2
+0005B4  246000     MOV #0x4600, W0
+0005B6  410000     ADD W2, W0, W0
+0005B8  780801     MOV W1, [W0]
+92:                		ecan1MsgBuf[message->buffer][1]=word1;
+0005BA  90006E     MOV [W14+12], W0
+0005BC  904030     MOV.B [W0+3], W0
+0005BE  FB8000     ZE W0, W0
+0005C0  9000AE     MOV [W14+4], W1
+0005C2  DD0144     SL W0, #4, W2
+0005C4  246020     MOV #0x4602, W0
+0005C6  410000     ADD W2, W0, W0
+0005C8  780801     MOV W1, [W0]
+93:                		ecan1MsgBuf[message->buffer][2]=word2;
+0005CA  90006E     MOV [W14+12], W0
+0005CC  904030     MOV.B [W0+3], W0
+0005CE  FB8000     ZE W0, W0
+0005D0  9000CE     MOV [W14+8], W1
+0005D2  DD0144     SL W0, #4, W2
+0005D4  246040     MOV #0x4604, W0
+0005D6  410000     ADD W2, W0, W0
+0005D8  780801     MOV W1, [W0]
+94:                		/* fill the data */
+95:                		ecan1MsgBuf[message->buffer][3]=((message->data[1] << 8) + message->data[0]);
+0005DA  90006E     MOV [W14+12], W0
+0005DC  904030     MOV.B [W0+3], W0
+0005DE  FB8000     ZE W0, W0
+0005E0  9000EE     MOV [W14+12], W1
+0005E2  904891     MOV.B [W1+9], W1
+0005E4  FB8081     ZE W1, W1
+0005E6  DD0948     SL W1, #8, W2
+0005E8  9000EE     MOV [W14+12], W1
+0005EA  904881     MOV.B [W1+8], W1
+0005EC  FB8081     ZE W1, W1
+0005EE  410081     ADD W2, W1, W1
+0005F0  DD0144     SL W0, #4, W2
+0005F2  246060     MOV #0x4606, W0
+0005F4  410000     ADD W2, W0, W0
+0005F6  780801     MOV W1, [W0]
+96:                		ecan1MsgBuf[message->buffer][4]=((message->data[3] << 8) + message->data[2]);
+0005F8  90006E     MOV [W14+12], W0
+0005FA  904030     MOV.B [W0+3], W0
+0005FC  FB8000     ZE W0, W0
+0005FE  9000EE     MOV [W14+12], W1
+000600  9048B1     MOV.B [W1+11], W1
+000602  FB8081     ZE W1, W1
+000604  DD0948     SL W1, #8, W2
+000606  9000EE     MOV [W14+12], W1
+000608  9048A1     MOV.B [W1+10], W1
+00060A  FB8081     ZE W1, W1
+00060C  410081     ADD W2, W1, W1
+00060E  DD0144     SL W0, #4, W2
+000610  246080     MOV #0x4608, W0
+000612  410000     ADD W2, W0, W0
+000614  780801     MOV W1, [W0]
+97:                		ecan1MsgBuf[message->buffer][5]=((message->data[5] << 8) + message->data[4]);
+000616  90006E     MOV [W14+12], W0
+000618  904030     MOV.B [W0+3], W0
+00061A  FB8000     ZE W0, W0
+00061C  9000EE     MOV [W14+12], W1
+00061E  9048D1     MOV.B [W1+13], W1
+000620  FB8081     ZE W1, W1
+000622  DD0948     SL W1, #8, W2
+000624  9000EE     MOV [W14+12], W1
+000626  9048C1     MOV.B [W1+12], W1
+000628  FB8081     ZE W1, W1
+00062A  410081     ADD W2, W1, W1
+00062C  DD0144     SL W0, #4, W2
+00062E  2460A0     MOV #0x460A, W0
+000630  410000     ADD W2, W0, W0
+000632  780801     MOV W1, [W0]
+98:                		ecan1MsgBuf[message->buffer][6]=((message->data[7] << 8) + message->data[6]);
+000634  90006E     MOV [W14+12], W0
+000636  904030     MOV.B [W0+3], W0
+000638  FB8000     ZE W0, W0
+00063A  9000EE     MOV [W14+12], W1
+00063C  9048F1     MOV.B [W1+15], W1
+00063E  FB8081     ZE W1, W1
+000640  DD0948     SL W1, #8, W2
+000642  9000EE     MOV [W14+12], W1
+000644  9048E1     MOV.B [W1+14], W1
+000646  FB8081     ZE W1, W1
+000648  410081     ADD W2, W1, W1
+00064A  DD0144     SL W0, #4, W2
+00064C  2460C0     MOV #0x460C, W0
+00064E  410000     ADD W2, W0, W0
+000650  780801     MOV W1, [W0]
+99:                	}
+100:               	/* set the message for transmission */
+101:               	C1TR01CONbits.TXREQ0=1;
+000652  A86430     BSET C1TR01CON, #3
+102:               }
+000654  FA8000     ULNK
+000656  060000     RETURN
+103:               
+104:               /******************************************************************************
+105:               *                                                                             
+106:               *    Function:			rxECAN
+107:               *    Description:       moves the message from the DMA memory to RAM
+108:               *                                                                             
+109:               *    Arguments:			*message: a pointer to the message structure in RAM 
+110:               *						that will store the message. 
+111:               *	 Author:            Jatinder Gharoo                                                      
+112:               *	                                                                 
+113:               *                                                                              
+114:               ******************************************************************************/
+115:               void rxECAN(mID *message)
+116:               {
+000658  FA000A     LNK #0xA
+00065A  980740     MOV W0, [W14+8]
+117:               	unsigned int ide=0;
+00065C  EB0000     CLR W0
+00065E  980710     MOV W0, [W14+2]
+118:               	unsigned int rtr=0;
+000660  EB0000     CLR W0
+000662  780F00     MOV W0, [W14]
+119:               	unsigned long id=0;
+000664  B80060     MUL.UU W0, #0, W0
+000666  980720     MOV W0, [W14+4]
+000668  980731     MOV W1, [W14+6]
+120:               			
+121:               	/*
+122:               	Standard Message Format: 
+123:               	Word0 : 0bUUUx xxxx xxxx xxxx
+124:               			     |____________|||
+125:                					SID10:0   SRR IDE(bit 0)     
+126:               	Word1 : 0bUUUU xxxx xxxx xxxx
+127:               			   	   |____________|
+128:               						EID17:6
+129:               	Word2 : 0bxxxx xxx0 UUU0 xxxx
+130:               			  |_____||	     |__|
+131:               			  EID5:0 RTR   	  DLC
+132:               	word3-word6: data bytes
+133:               	word7: filter hit code bits
+134:               	
+135:               	Remote Transmission Request Bit for standard frames 
+136:               	SRR->	"0"	 Normal Message 
+137:               			"1"  Message will request remote transmission
+138:               	Substitute Remote Request Bit for extended frames 
+139:               	SRR->	should always be set to "1" as per CAN specification
+140:               	
+141:               	Extended  Identifier Bit			
+142:               	IDE-> 	"0"  Message will transmit standard identifier
+143:               	   		"1"  Message will transmit extended identifier
+144:               	
+145:               	Remote Transmission Request Bit for extended frames 
+146:               	RTR-> 	"0"  Message transmitted is a normal message
+147:               			"1"  Message transmitted is a remote message
+148:               	Don't care for standard frames 
+149:               	*/
+150:               		
+151:               	/* read word 0 to see the message type */
+152:               	ide=ecan1MsgBuf[message->buffer][0] & 0x0001;			
+00066A  90004E     MOV [W14+8], W0
+00066C  904030     MOV.B [W0+3], W0
+00066E  FB8000     ZE W0, W0
+000670  DD00C4     SL W0, #4, W1
+000672  246000     MOV #0x4600, W0
+000674  408000     ADD W1, W0, W0
+000676  780010     MOV [W0], W0
+000678  600061     AND W0, #0x1, W0
+00067A  980710     MOV W0, [W14+2]
+153:               	
+154:               	/* check to see what type of message it is */
+155:               	/* message is standard identifier */
+156:               	if(ide==0)
+00067C  90001E     MOV [W14+2], W0
+00067E  E00000     CP0 W0
+000680  3A001A     BRA NZ, 0x6B6
+157:               	{
+158:               		message->id=(ecan1MsgBuf[message->buffer][0] & 0x1FFC) >> 2;		
+000682  90004E     MOV [W14+8], W0
+000684  904030     MOV.B [W0+3], W0
+000686  FB8000     ZE W0, W0
+000688  DD00C4     SL W0, #4, W1
+00068A  246000     MOV #0x4600, W0
+00068C  408000     ADD W1, W0, W0
+00068E  780090     MOV [W0], W1
+000690  21FFC0     MOV #0x1FFC, W0
+000692  608000     AND W1, W0, W0
+000694  DE0042     LSR W0, #2, W0
+000696  EB0080     CLR W1
+000698  90014E     MOV [W14+8], W2
+00069A  980120     MOV W0, [W2+4]
+00069C  980131     MOV W1, [W2+6]
+159:               		message->frame_type=CAN_FRAME_STD;
+00069E  90004E     MOV [W14+8], W0
+0006A0  B3C041     MOV.B #0x4, W1
+0006A2  984021     MOV.B W1, [W0+2]
+160:               		rtr=ecan1MsgBuf[message->buffer][0] & 0x0002;
+0006A4  90004E     MOV [W14+8], W0
+0006A6  904030     MOV.B [W0+3], W0
+0006A8  FB8000     ZE W0, W0
+0006AA  DD00C4     SL W0, #4, W1
+0006AC  246000     MOV #0x4600, W0
+0006AE  408000     ADD W1, W0, W0
+0006B0  780010     MOV [W0], W0
+0006B2  600F62     AND W0, #0x2, [W14]
+0006B4  37006B     BRA 0x78C
+161:               	}
+162:               	/* mesage is extended identifier */
+163:               	else
+164:               	{
+165:               		id=ecan1MsgBuf[message->buffer][0] & 0x1FFC;		
+0006B6  90004E     MOV [W14+8], W0
+0006B8  904030     MOV.B [W0+3], W0
+0006BA  FB8000     ZE W0, W0
+0006BC  DD00C4     SL W0, #4, W1
+0006BE  246000     MOV #0x4600, W0
+0006C0  408000     ADD W1, W0, W0
+0006C2  780010     MOV [W0], W0
+0006C4  B80161     MUL.UU W0, #1, W2
+0006C6  21FFC0     MOV #0x1FFC, W0
+0006C8  200001     MOV #0x0, W1
+0006CA  780202     MOV W2, W4
+0006CC  780103     MOV W3, W2
+0006CE  780180     MOV W0, W3
+0006D0  780001     MOV W1, W0
+0006D2  620203     AND W4, W3, W4
+0006D4  610000     AND W2, W0, W0
+0006D6  EB0080     CLR W1
+0006D8  DD00C0     SL W0, #0, W1
+0006DA  200000     MOV #0x0, W0
+0006DC  BE0100     MOV.D W0, W2
+0006DE  B82061     MUL.UU W4, #1, W0
+0006E0  710100     IOR W2, W0, W2
+0006E2  718181     IOR W3, W1, W3
+0006E4  980722     MOV W2, [W14+4]
+0006E6  980733     MOV W3, [W14+6]
+166:               		message->id=id << 16;
+0006E8  90002E     MOV [W14+4], W0
+0006EA  9000BE     MOV [W14+6], W1
+0006EC  DD00C0     SL W0, #0, W1
+0006EE  200000     MOV #0x0, W0
+0006F0  90014E     MOV [W14+8], W2
+0006F2  980120     MOV W0, [W2+4]
+0006F4  980131     MOV W1, [W2+6]
+167:               		id=ecan1MsgBuf[message->buffer][1] & 0x0FFF;
+0006F6  90004E     MOV [W14+8], W0
+0006F8  904030     MOV.B [W0+3], W0
+0006FA  FB8000     ZE W0, W0
+0006FC  DD0044     SL W0, #4, W0
+0006FE  E88080     INC2 W0, W1
+000700  246000     MOV #0x4600, W0
+000702  408000     ADD W1, W0, W0
+000704  780010     MOV [W0], W0
+000706  B80161     MUL.UU W0, #1, W2
+000708  20FFF0     MOV #0xFFF, W0
+00070A  200001     MOV #0x0, W1
+00070C  780202     MOV W2, W4
+00070E  780103     MOV W3, W2
+000710  780180     MOV W0, W3
+000712  780001     MOV W1, W0
+000714  620203     AND W4, W3, W4
+000716  610000     AND W2, W0, W0
+000718  EB0080     CLR W1
+00071A  DD00C0     SL W0, #0, W1
+00071C  200000     MOV #0x0, W0
+00071E  BE0100     MOV.D W0, W2
+000720  B82061     MUL.UU W4, #1, W0
+000722  710100     IOR W2, W0, W2
+000724  718181     IOR W3, W1, W3
+000726  980722     MOV W2, [W14+4]
+000728  980733     MOV W3, [W14+6]
+168:               		message->id=message->id+(id << 6);
+00072A  90004E     MOV [W14+8], W0
+00072C  900120     MOV [W0+4], W2
+00072E  9001B0     MOV [W0+6], W3
+000730  90022E     MOV [W14+4], W4
+000732  9002BE     MOV [W14+6], W5
+000734  DD2846     SL W5, #6, W0
+000736  DE20CA     LSR W4, #10, W1
+000738  700081     IOR W0, W1, W1
+00073A  DD2046     SL W4, #6, W0
+00073C  400002     ADD W0, W2, W0
+00073E  488083     ADDC W1, W3, W1
+000740  90014E     MOV [W14+8], W2
+000742  980120     MOV W0, [W2+4]
+000744  980131     MOV W1, [W2+6]
+169:               		id=(ecan1MsgBuf[message->buffer][2] & 0xFC00) >> 10;
+000746  90004E     MOV [W14+8], W0
+000748  904030     MOV.B [W0+3], W0
+00074A  FB8000     ZE W0, W0
+00074C  DD0044     SL W0, #4, W0
+00074E  4000E4     ADD W0, #0x4, W1
+000750  246000     MOV #0x4600, W0
+000752  408000     ADD W1, W0, W0
+000754  780010     MOV [W0], W0
+000756  DE004A     LSR W0, #10, W0
+000758  EB0080     CLR W1
+00075A  980720     MOV W0, [W14+4]
+00075C  980731     MOV W1, [W14+6]
+170:               		message->id=message->id+id;		
+00075E  90004E     MOV [W14+8], W0
+000760  900120     MOV [W0+4], W2
+000762  9001B0     MOV [W0+6], W3
+000764  90002E     MOV [W14+4], W0
+000766  9000BE     MOV [W14+6], W1
+000768  400002     ADD W0, W2, W0
+00076A  488083     ADDC W1, W3, W1
+00076C  90014E     MOV [W14+8], W2
+00076E  980120     MOV W0, [W2+4]
+000770  980131     MOV W1, [W2+6]
+171:               		message->frame_type=CAN_FRAME_EXT;
+000772  90004E     MOV [W14+8], W0
+000774  B3C031     MOV.B #0x3, W1
+000776  984021     MOV.B W1, [W0+2]
+172:               		rtr=ecan1MsgBuf[message->buffer][2] & 0x0200;
+000778  90004E     MOV [W14+8], W0
+00077A  904030     MOV.B [W0+3], W0
+00077C  FB8000     ZE W0, W0
+00077E  DD0044     SL W0, #4, W0
+000780  4000E4     ADD W0, #0x4, W1
+000782  246000     MOV #0x4600, W0
+000784  408000     ADD W1, W0, W0
+000786  780090     MOV [W0], W1
+000788  202000     MOV #0x200, W0
+00078A  608F00     AND W1, W0, [W14]
+173:               	}
+174:               	/* check to see what type of message it is */
+175:               	/* RTR message */
+176:               	if(rtr==1)
+00078C  78001E     MOV [W14], W0
+00078E  500FE1     SUB W0, #0x1, [W15]
+000790  3A0004     BRA NZ, 0x79A
+177:               	{
+178:               		message->message_type=CAN_MSG_RTR;	
+000792  90004E     MOV [W14+8], W0
+000794  B3C021     MOV.B #0x2, W1
+000796  984011     MOV.B W1, [W0+1]
+000798  37006B     BRA 0x870
+179:               	}
+180:               	/* normal message */
+181:               	else
+182:               	{
+183:               		message->message_type=CAN_MSG_DATA;
+00079A  90004E     MOV [W14+8], W0
+00079C  B3C011     MOV.B #0x1, W1
+00079E  984011     MOV.B W1, [W0+1]
+184:               		message->data[0]=(unsigned char)ecan1MsgBuf[message->buffer][3];
+0007A0  90004E     MOV [W14+8], W0
+0007A2  904030     MOV.B [W0+3], W0
+0007A4  FB8000     ZE W0, W0
+0007A6  DD0044     SL W0, #4, W0
+0007A8  4000E6     ADD W0, #0x6, W1
+0007AA  246000     MOV #0x4600, W0
+0007AC  408000     ADD W1, W0, W0
+0007AE  780010     MOV [W0], W0
+0007B0  784080     MOV.B W0, W1
+0007B2  90004E     MOV [W14+8], W0
+0007B4  984801     MOV.B W1, [W0+8]
+185:               		message->data[1]=(unsigned char)((ecan1MsgBuf[message->buffer][3] & 0xFF00) >> 8);
+0007B6  90004E     MOV [W14+8], W0
+0007B8  904030     MOV.B [W0+3], W0
+0007BA  FB8000     ZE W0, W0
+0007BC  DD0044     SL W0, #4, W0
+0007BE  4000E6     ADD W0, #0x6, W1
+0007C0  246000     MOV #0x4600, W0
+0007C2  408000     ADD W1, W0, W0
+0007C4  780010     MOV [W0], W0
+0007C6  DE0048     LSR W0, #8, W0
+0007C8  784080     MOV.B W0, W1
+0007CA  90004E     MOV [W14+8], W0
+0007CC  984811     MOV.B W1, [W0+9]
+186:               		message->data[2]=(unsigned char)ecan1MsgBuf[message->buffer][4];
+0007CE  90004E     MOV [W14+8], W0
+0007D0  904030     MOV.B [W0+3], W0
+0007D2  FB8000     ZE W0, W0
+0007D4  DD0044     SL W0, #4, W0
+0007D6  4000E8     ADD W0, #0x8, W1
+0007D8  246000     MOV #0x4600, W0
+0007DA  408000     ADD W1, W0, W0
+0007DC  780010     MOV [W0], W0
+0007DE  784080     MOV.B W0, W1
+0007E0  90004E     MOV [W14+8], W0
+0007E2  984821     MOV.B W1, [W0+10]
+187:               		message->data[3]=(unsigned char)((ecan1MsgBuf[message->buffer][4] & 0xFF00) >> 8);
+0007E4  90004E     MOV [W14+8], W0
+0007E6  904030     MOV.B [W0+3], W0
+0007E8  FB8000     ZE W0, W0
+0007EA  DD0044     SL W0, #4, W0
+0007EC  4000E8     ADD W0, #0x8, W1
+0007EE  246000     MOV #0x4600, W0
+0007F0  408000     ADD W1, W0, W0
+0007F2  780010     MOV [W0], W0
+0007F4  DE0048     LSR W0, #8, W0
+0007F6  784080     MOV.B W0, W1
+0007F8  90004E     MOV [W14+8], W0
+0007FA  984831     MOV.B W1, [W0+11]
+188:               		message->data[4]=(unsigned char)ecan1MsgBuf[message->buffer][5];
+0007FC  90004E     MOV [W14+8], W0
+0007FE  904030     MOV.B [W0+3], W0
+000800  FB8000     ZE W0, W0
+000802  DD0044     SL W0, #4, W0
+000804  4000EA     ADD W0, #0xA, W1
+000806  246000     MOV #0x4600, W0
+000808  408000     ADD W1, W0, W0
+00080A  780010     MOV [W0], W0
+00080C  784080     MOV.B W0, W1
+00080E  90004E     MOV [W14+8], W0
+000810  984841     MOV.B W1, [W0+12]
+189:               		message->data[5]=(unsigned char)((ecan1MsgBuf[message->buffer][5] & 0xFF00) >> 8);
+000812  90004E     MOV [W14+8], W0
+000814  904030     MOV.B [W0+3], W0
+000816  FB8000     ZE W0, W0
+000818  DD0044     SL W0, #4, W0
+00081A  4000EA     ADD W0, #0xA, W1
+00081C  246000     MOV #0x4600, W0
+00081E  408000     ADD W1, W0, W0
+000820  780010     MOV [W0], W0
+000822  DE0048     LSR W0, #8, W0
+000824  784080     MOV.B W0, W1
+000826  90004E     MOV [W14+8], W0
+000828  984851     MOV.B W1, [W0+13]
+190:               		message->data[6]=(unsigned char)ecan1MsgBuf[message->buffer][6];
+00082A  90004E     MOV [W14+8], W0
+00082C  904030     MOV.B [W0+3], W0
+00082E  FB8000     ZE W0, W0
+000830  DD0044     SL W0, #4, W0
+000832  4000EC     ADD W0, #0xC, W1
+000834  246000     MOV #0x4600, W0
+000836  408000     ADD W1, W0, W0
+000838  780010     MOV [W0], W0
+00083A  784080     MOV.B W0, W1
+00083C  90004E     MOV [W14+8], W0
+00083E  984861     MOV.B W1, [W0+14]
+191:               		message->data[7]=(unsigned char)((ecan1MsgBuf[message->buffer][6] & 0xFF00) >> 8);
+000840  90004E     MOV [W14+8], W0
+000842  904030     MOV.B [W0+3], W0
+000844  FB8000     ZE W0, W0
+000846  DD0044     SL W0, #4, W0
+000848  4000EC     ADD W0, #0xC, W1
+00084A  246000     MOV #0x4600, W0
+00084C  408000     ADD W1, W0, W0
+00084E  780010     MOV [W0], W0
+000850  DE0048     LSR W0, #8, W0
+000852  784080     MOV.B W0, W1
+000854  90004E     MOV [W14+8], W0
+000856  984871     MOV.B W1, [W0+15]
+192:               		message->data_length=(unsigned char)(ecan1MsgBuf[message->buffer][2] & 0x000F);
+000858  90004E     MOV [W14+8], W0
+00085A  904030     MOV.B [W0+3], W0
+00085C  FB8000     ZE W0, W0
+00085E  DD0044     SL W0, #4, W0
+000860  4000E4     ADD W0, #0x4, W1
+000862  246000     MOV #0x4600, W0
+000864  408000     ADD W1, W0, W0
+000866  780010     MOV [W0], W0
+000868  784000     MOV.B W0, W0
+00086A  6040EF     AND.B W0, #0xF, W1
+00086C  90004E     MOV [W14+8], W0
+00086E  985001     MOV.B W1, [W0+16]
+193:               	}
+194:               	clearRxFlags(message->buffer);	
+000870  90004E     MOV [W14+8], W0
+000872  904030     MOV.B [W0+3], W0
+000874  070002     RCALL clearRxFlags
+195:               }
+000876  FA8000     ULNK
+000878  060000     RETURN
+196:               
+197:               /******************************************************************************
+198:               *                                                                             
+199:               *    Function:			clearRxFlags
+200:               *    Description:       clears the rxfull flag after the message is read
+201:               *                                                                             
+202:               *    Arguments:			buffer number to clear 
+203:               *	 Author:            Jatinder Gharoo                                                      
+204:               *	                                                                 
+205:               *                                                                              
+206:               ******************************************************************************/
+207:               void clearRxFlags(unsigned char buffer_number)
+208:               {
+00087A  FA0002     LNK #0x2
+00087C  784F00     MOV.B W0, [W14]
+209:               	if((C1RXFUL1bits.RXFUL1) && (buffer_number==1))
+00087E  802100     MOV C1RXFUL1, W0
+000880  600062     AND W0, #0x2, W0
+000882  E00000     CP0 W0
+000884  320005     BRA Z, 0x890
+000886  78401E     MOV.B [W14], W0
+000888  504FE1     SUB.B W0, #0x1, [W15]
+00088A  3A0002     BRA NZ, 0x890
+210:               		/* clear flag */
+211:               		C1RXFUL1bits.RXFUL1=0;		
+00088C  A92420     BCLR C1RXFUL1, #1
+00088E  370011     BRA 0x8B2
+212:               	/* check to see if buffer 2 is full */
+213:               	else if((C1RXFUL1bits.RXFUL2) && (buffer_number==2))
+000890  802100     MOV C1RXFUL1, W0
+000892  600064     AND W0, #0x4, W0
+000894  E00000     CP0 W0
+000896  320005     BRA Z, 0x8A2
+000898  78401E     MOV.B [W14], W0
+00089A  504FE2     SUB.B W0, #0x2, [W15]
+00089C  3A0002     BRA NZ, 0x8A2
+214:               		/* clear flag */
+215:               		C1RXFUL1bits.RXFUL2=0;				
+00089E  A94420     BCLR C1RXFUL1, #2
+0008A0  370008     BRA 0x8B2
+216:               	/* check to see if buffer 3 is full */
+217:               	else if((C1RXFUL1bits.RXFUL3) && (buffer_number==3))
+0008A2  802100     MOV C1RXFUL1, W0
+0008A4  600068     AND W0, #0x8, W0
+0008A6  E00000     CP0 W0
+0008A8  320004     BRA Z, 0x8B2
+0008AA  78401E     MOV.B [W14], W0
+0008AC  504FE3     SUB.B W0, #0x3, [W15]
+0008AE  3A0001     BRA NZ, 0x8B2
+218:               		/* clear flag */
+219:               		C1RXFUL1bits.RXFUL3=0;				
+0008B0  A96420     BCLR C1RXFUL1, #3
+220:               	else;
+221:               
+222:               }
+0008B2  FA8000     ULNK
+0008B4  060000     RETURN
+223:               
+224:               /******************************************************************************
+225:               *                                                                             
+226:               *    Function:			ECANInit
+227:               *    Description:       Initialises the ECAN module                                                        
+228:               *                                                                             
+229:               *    Arguments:			none 
+230:               *	 Author:            Jatinder Gharoo                                                      
+231:               *	                                                                 
+232:               *                                                                              
+233:               ******************************************************************************/
+234:               void ECANInit (void)
+235:               {
+0008B6  FA0000     LNK #0x0
+236:               
+237:               	/* put the module in configuration mode */
+238:               	C1CTRL1bits.REQOP=4;
+0008B8  802001     MOV C1CTRL1, W1
+0008BA  2F8FF0     MOV #0xF8FF, W0
+0008BC  608000     AND W1, W0, W0
+0008BE  A0A000     BSET W0, #10
+0008C0  882000     MOV W0, C1CTRL1
+239:               	while(C1CTRL1bits.OPMODE != 4);
+0008C2  000000     NOP
+0008C4  802001     MOV C1CTRL1, W1
+0008C6  200E00     MOV #0xE0, W0
+0008C8  608080     AND W1, W0, W1
+0008CA  200800     MOV #0x80, W0
+0008CC  508F80     SUB W1, W0, [W15]
+0008CE  3AFFFA     BRA NZ, 0x8C4
+240:               	/*
+241:               	Bit Time = (Sync Segment + Propagation Delay + Phase Segment 1 + Phase Segment 2)=20*TQ
+242:               	Phase Segment 1 = 8TQ
+243:               	Phase Segment 2 = 6TQ
+244:               	Propagation Delay = 5TQ
+245:               	Sync Segment = 1TQ
+246:               	CiCFG1<BRP> = ((FCAN/(2*NTQ*BITRATE))-1)
+247:               	BIT RATE OF 1Mbps
+248:               	*/	
+249:               	/* Phase Segment 1 time is 8 TQ */
+250:               	C1CFG2bits.SEG1PH=0x7;
+0008D0  802091     MOV C1CFG2, W1
+0008D2  200380     MOV #0x38, W0
+0008D4  700001     IOR W0, W1, W0
+0008D6  882090     MOV W0, C1CFG2
+251:               	/* Phase Segment 2 time is set to be programmable */
+252:               	C1CFG2bits.SEG2PHTS = 0x1;
+0008D8  A8E412     BSET C1CFG2, #7
+253:               	/* Phase Segment 2 time is 6 TQ */
+254:               	C1CFG2bits.SEG2PH = 0x5;
+0008DA  802091     MOV C1CFG2, W1
+0008DC  2F8FF0     MOV #0xF8FF, W0
+0008DE  608080     AND W1, W0, W1
+0008E0  205000     MOV #0x500, W0
+0008E2  700001     IOR W0, W1, W0
+0008E4  882090     MOV W0, C1CFG2
+255:               	/* Propagation Segment time is 5 TQ */
+256:               	C1CFG2bits.PRSEG = 0x4;
+0008E6  802091     MOV C1CFG2, W1
+0008E8  2FFF80     MOV #0xFFF8, W0
+0008EA  608000     AND W1, W0, W0
+0008EC  A02000     BSET W0, #2
+0008EE  882090     MOV W0, C1CFG2
+257:               	/* Bus line is sampled three times at the sample point */
+258:               	C1CFG2bits.SAM = 0x1;
+0008F0  A8C412     BSET C1CFG2, #6
+259:                   /* Synchronization Jump Width set to 4 TQ */
+260:               	C1CFG1bits.SJW = 0x3;
+0008F2  802081     MOV C1CFG1, W1
+0008F4  200C00     MOV #0xC0, W0
+0008F6  700001     IOR W0, W1, W0
+0008F8  882080     MOV W0, C1CFG1
+261:                   /* Baud Rate Prescaler bits set to 1:1, i.e., TQ = (2*1*1)/ FCAN */
+262:               	C1CFG1bits.BRP = BRP_VAL;
+0008FA  802081     MOV C1CFG1, W1
+0008FC  2FFC00     MOV #0xFFC0, W0
+0008FE  608000     AND W1, W0, W0
+000900  882080     MOV W0, C1CFG1
+263:               	/* 4 CAN Messages to be buffered in DMA RAM */	
+264:               	C1FCTRLbits.DMABS=0b000;
+000902  802031     MOV C1FCTRL, W1
+000904  21FFF0     MOV #0x1FFF, W0
+000906  608000     AND W1, W0, W0
+000908  882030     MOV W0, C1FCTRL
+265:               	
+266:               	/* Filter configuration */
+267:               	/* Enable window to access the filter configuration registers */
+268:               	C1CTRL1bits.WIN=0b1;
+00090A  A80400     BSET C1CTRL1, #0
+269:               	/* select acceptance mask 0 filter 0 buffer 1 */
+270:               	C1FMSKSEL1bits.F0MSK=0;
+00090C  8020C1     MOV C1FMSKSEL1, W1
+00090E  2FFFC0     MOV #0xFFFC, W0
+000910  608000     AND W1, W0, W0
+000912  8820C0     MOV W0, C1FMSKSEL1
+271:               	/* configure accpetence mask 0 - match the id in filter 0 
+272:               	setup the mask to check every bit of the extended message, 
+273:               	the macro when called as CAN_FILTERMASK2REG_EID0(0xFFFF) 
+274:               	will write the register C1RXM1EID to include extended 
+275:               	message id bits EID0 to EID15 in filter comparison. 
+276:               	the macro when called as CAN_FILTERMASK2REG_EID1(0x1FFF) 
+277:               	will write the register C1RXM1SID to include extended 
+278:               	message id bits EID16 to EID28 in filter comparison. 	
+279:               	*/ 	
+280:                   C1RXM0EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+000914  EB8000     SETM W0
+000916  882190     MOV W0, C1TR23CON
+281:               	C1RXM0SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
+000918  2FFE30     MOV #0xFFE3, W0
+00091A  882180     MOV W0, C1TR01CON
+282:               	/* configure accpetence filter 0 
+283:               	configure accpetence filter 1 - accept only XTD ID 0x12345677 
+284:               	setup the filter to accept only extended message 0x12345677, 
+285:               	the macro when called as CAN_FILTERMASK2REG_EID0(0x5677) 
+286:               	will write the register C1RXF1EID to include extended 
+287:               	message id bits EID0 to EID15 when doing filter comparison. 
+288:               	the macro when called as CAN_FILTERMASK2REG_EID1(0x1234) 
+289:               	will write the register C1RXF1SID to include extended 
+290:               	message id bits EID16 to EID28 when doing filter comparison. 	
+291:               	*/ 	
+292:                   C1RXF0EID=CAN_FILTERMASK2REG_EID0(0x5677);
+00091C  256770     MOV #0x5677, W0
+00091E  882210     MOV W0, C1TXD
+293:               	C1RXF0SID=CAN_FILTERMASK2REG_EID1(0x1234);
+000920  291A00     MOV #0x91A0, W0
+000922  882200     MOV W0, C1RXD
+294:               	/* set filter to check for standard ID and accept standard id only */
+295:               	C1RXM0SID=CAN_SETMIDE(C1RXM0SID);
+000924  802180     MOV C1TR01CON, W0
+000926  A03000     BSET W0, #3
+000928  882180     MOV W0, C1TR01CON
+296:               	C1RXF0SID=CAN_FILTERXTD(C1RXF0SID);	
+00092A  802200     MOV C1RXD, W0
+00092C  A03000     BSET W0, #3
+00092E  882200     MOV W0, C1RXD
+297:               	/* acceptance filter to use buffer 1 for incoming messages */
+298:               	C1BUFPNT1bits.F0BP=0b0001;
+000930  802101     MOV C1RXFUL1, W1
+000932  2FFF00     MOV #0xFFF0, W0
+000934  608000     AND W1, W0, W0
+000936  A00000     BSET W0, #0
+000938  882100     MOV W0, C1RXFUL1
+299:               	/* enable filter 0 */
+300:               	C1FEN1bits.FLTEN0=1;
+00093A  A80414     BSET C1FEN1, #0
+301:               	
+302:               	/* select acceptance mask 1 filter 1 and buffer 2 */
+303:               	C1FMSKSEL1bits.F1MSK=0b01;
+00093C  8020C1     MOV C1FMSKSEL1, W1
+00093E  2FFF30     MOV #0xFFF3, W0
+000940  608000     AND W1, W0, W0
+000942  A02000     BSET W0, #2
+000944  8820C0     MOV W0, C1FMSKSEL1
+304:               	/* configure accpetence mask 1 - match id in filter 1 	
+305:               	setup the mask to check every bit of the extended message, 
+306:               	the macro when called as CAN_FILTERMASK2REG_EID0(0xFFFF) 
+307:               	will write the register C1RXM1EID to include extended 
+308:               	message id bits EID0 to EID15 in filter comparison. 
+309:               	the macro when called as CAN_FILTERMASK2REG_EID1(0x1FFF) 
+310:               	will write the register C1RXM1SID to include extended 
+311:               	message id bits EID16 to EID28 in filter comparison. 	
+312:               	*/ 			
+313:               	C1RXM1EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+000946  EB8000     SETM W0
+000948  8821B0     MOV W0, C1TR67CON
+314:               	C1RXM1SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
+00094A  2FFE30     MOV #0xFFE3, W0
+00094C  8821A0     MOV W0, C1TR45CON
+315:               	/* configure acceptance filter 1 
+316:               	configure accpetence filter 1 - accept only XTD ID 0x12345678 
+317:               	setup the filter to accept only extended message 0x12345678, 
+318:               	the macro when called as CAN_FILTERMASK2REG_EID0(0x5678) 
+319:               	will write the register C1RXF1EID to include extended 
+320:               	message id bits EID0 to EID15 when doing filter comparison. 
+321:               	the macro when called as CAN_FILTERMASK2REG_EID1(0x1234) 
+322:               	will write the register C1RXF1SID to include extended 
+323:               	message id bits EID16 to EID28 when doing filter comparison. 	
+324:               	*/ 
+325:               	C1RXF1EID=CAN_FILTERMASK2REG_EID0(0x5678);
+00094E  256780     MOV #0x5678, W0
+000950  882230     MOV W0, C1RXF1EID
+326:               	C1RXF1SID=CAN_FILTERMASK2REG_EID1(0x1234);		
+000952  291A00     MOV #0x91A0, W0
+000954  882220     MOV W0, C1RXF1SID
+327:               	/* filter to check for extended ID only */
+328:               	C1RXM1SID=CAN_SETMIDE(C1RXM1SID);
+000956  8021A0     MOV C1TR45CON, W0
+000958  A03000     BSET W0, #3
+00095A  8821A0     MOV W0, C1TR45CON
+329:               	C1RXF1SID=CAN_FILTERXTD(C1RXF1SID);
+00095C  802220     MOV C1RXF1SID, W0
+00095E  A03000     BSET W0, #3
+000960  882220     MOV W0, C1RXF1SID
+330:               	/* acceptance filter to use buffer 2 for incoming messages */
+331:               	C1BUFPNT1bits.F1BP=0b0010;
+000962  802101     MOV C1RXFUL1, W1
+000964  2FF0F0     MOV #0xFF0F, W0
+000966  608000     AND W1, W0, W0
+000968  A05000     BSET W0, #5
+00096A  882100     MOV W0, C1RXFUL1
+332:               	/* enable filter 1 */
+333:               	C1FEN1bits.FLTEN1=1;
+00096C  A82414     BSET C1FEN1, #1
+334:               	
+335:               	/* select acceptance mask 2 filter 2 and buffer 3 */
+336:               	C1FMSKSEL1bits.F2MSK=0b10;	
+00096E  8020C1     MOV C1FMSKSEL1, W1
+000970  2FFCF0     MOV #0xFFCF, W0
+000972  608000     AND W1, W0, W0
+000974  A05000     BSET W0, #5
+000976  8820C0     MOV W0, C1FMSKSEL1
+337:               	/* configure acceptance filter 2 
+338:               	configure accpetence filter 2 - accept only XTD ID 0x12345679 
+339:               	setup the filter to accept only extended message 0x12345679, 
+340:               	the macro when called as CAN_FILTERMASK2REG_EID0(0x5679) 
+341:               	will write the register C1RXF1EID to include extended 
+342:               	message id bits EID0 to EID15 when doing filter comparison. 
+343:               	the macro when called as CAN_FILTERMASK2REG_EID1(0x1234) 
+344:               	will write the register C1RXF1SID to include extended 
+345:               	message id bits EID16 to EID28 when doing filter comparison. 	
+346:               	*/ 
+347:               	C1RXF2EID=CAN_FILTERMASK2REG_EID0(0x5679);
+000978  256790     MOV #0x5679, W0
+00097A  882250     MOV W0, C1RXF2EID
+348:               	C1RXF2SID=CAN_FILTERMASK2REG_EID1(0x1234);		
+00097C  291A00     MOV #0x91A0, W0
+00097E  882240     MOV W0, C1RXF2SID
+349:               	/* filter to check for extended ID only */
+350:                   C1RXM2SID=CAN_SETMIDE(C1RXM2SID);	
+000980  8021C0     MOV C1RXM2SID, W0
+000982  A03000     BSET W0, #3
+000984  8821C0     MOV W0, C1RXM2SID
+351:               	C1RXF2SID=CAN_FILTERXTD(C1RXF2SID);
+000986  802240     MOV C1RXF2SID, W0
+000988  A03000     BSET W0, #3
+00098A  882240     MOV W0, C1RXF2SID
+352:               	/* acceptance filter to use buffer 3 for incoming messages */
+353:               	C1BUFPNT1bits.F2BP=0b0011;
+00098C  802101     MOV C1RXFUL1, W1
+00098E  2F0FF0     MOV #0xF0FF, W0
+000990  608080     AND W1, W0, W1
+000992  203000     MOV #0x300, W0
+000994  700001     IOR W0, W1, W0
+000996  882100     MOV W0, C1RXFUL1
+354:               	/* enable filter 2 */
+355:               	C1FEN1bits.FLTEN2=1;
+000998  A84414     BSET C1FEN1, #2
+356:               	         
+357:               	/* clear window bit to access ECAN control registers */
+358:               	C1CTRL1bits.WIN=0;
+00099A  A90400     BCLR C1CTRL1, #0
+359:               		
+360:               	/* put the module in normal mode */
+361:               	C1CTRL1bits.REQOP=0;
+00099C  802001     MOV C1CTRL1, W1
+00099E  2F8FF0     MOV #0xF8FF, W0
+0009A0  608000     AND W1, W0, W0
+0009A2  882000     MOV W0, C1CTRL1
+362:               	while(C1CTRL1bits.OPMODE != 0);	
+0009A4  000000     NOP
+0009A6  802001     MOV C1CTRL1, W1
+0009A8  200E00     MOV #0xE0, W0
+0009AA  608000     AND W1, W0, W0
+0009AC  E00000     CP0 W0
+0009AE  3AFFFB     BRA NZ, 0x9A6
+363:               	
+364:               	/* clear the buffer and overflow flags */
+365:               	C1RXFUL1=C1RXFUL2=C1RXOVF1=C1RXOVF2=0x0000;
+0009B0  EF242A     CLR C1RXOVF2
+0009B2  802150     MOV C1RXOVF2, W0
+0009B4  882140     MOV W0, C1RXOVF1
+0009B6  802140     MOV C1RXOVF1, W0
+0009B8  882110     MOV W0, C1RXFUL2
+0009BA  802110     MOV C1RXFUL2, W0
+0009BC  882100     MOV W0, C1RXFUL1
+366:               	/* ECAN1, Buffer 0 is a Transmit Buffer */
+367:               	C1TR01CONbits.TXEN0=1;			
+0009BE  A8E430     BSET C1TR01CON, #7
+368:               	/* ECAN1, Buffer 1 is a Receive Buffer */
+369:               	C1TR01CONbits.TXEN1=0;	
+0009C0  A9E431     BCLR 0x431, #7
+370:               	/* ECAN1, Buffer 2 is a Receive Buffer */
+371:               	C1TR23CONbits.TXEN2=0;	
+0009C2  A9E432     BCLR C1TR23CON, #7
+372:               	/* ECAN1, Buffer 3 is a Receive Buffer */
+373:               	C1TR23CONbits.TXEN3=0;	
+0009C4  A9E433     BCLR 0x433, #7
+374:               	/* Message Buffer 0 Priority Level */
+375:               	C1TR01CONbits.TX0PRI=0b11; 		
+0009C6  802180     MOV C1TR01CON, W0
+0009C8  B30030     IOR #0x3, W0
+0009CA  882180     MOV W0, C1TR01CON
+376:               		
+377:               	/* configure the device to interrupt on the receive buffer full flag */
+378:               	/* clear the buffer full flags */
+379:               	C1RXFUL1=0;
+0009CC  EF2420     CLR C1RXFUL1
+380:               	C1INTFbits.RBIF=0;
+0009CE  A9240A     BCLR C1INTF, #1
+381:                   
+382:                   /* Enable ECAN1 Interrupt */     	
+383:               	IEC2bits.C1IE=1;	
+0009D0  A86098     BSET IEC2, #3
+384:               	/* enable Transmit interrupt */
+385:               	C1INTEbits.TBIE=1;
+0009D2  A8040C     BSET C1INTE, #0
+386:               	/* Enable Receive interrupt */
+387:               	C1INTEbits.RBIE=1;
+0009D4  A8240C     BSET C1INTE, #1
+388:               }
+0009D6  FA8000     ULNK
+0009D8  060000     RETURN
+389:               
+390:               /******************************************************************************
+391:               *                                                                             
+392:               *    Function:			DMAInit
+393:               *    Description:       Initialises the DMA to be used with ECAN module                                                        
+394:               *                       Channel 0 of the DMA is configured to Tx ECAN messages
+395:               * 						of ECAN module 1. 
+396:               *						Channel 2 is uconfigured to Rx ECAN messages of module 1.                                                      
+397:               *    Arguments:			
+398:               *	 Author:            Jatinder Gharoo                                                      
+399:               *	                                                                 
+400:               *                                                                              
+401:               ******************************************************************************/
+402:               void DMAInit(void)
+403:               {
+0009DA  FA0000     LNK #0x0
+404:               //	/* initialise the DMA channel 0 for ECAN Tx */
+405:               //	/* clear the collission flags */
+406:               //	DMACS0=0;	
+407:               //    /* setup channel 0 for peripheral indirect addressing mode 
+408:               //    normal operation, word operation and select as Tx to peripheral */
+409:               //    DMA0CON=0x2020; 
+410:               //    /* setup the address of the peripheral ECAN1 (C1TXD) */ 
+411:               //	DMA0PAD=0x0442;
+412:                   
+413:                   /* Data Transfer Size: Word Transfer Mode */
+414:                   DMA0CONbits.SIZE = 0x0;
+0009DC  A9C381     BCLR 0x381, #6
+415:                   /* Data Transfer Direction: DMA RAM to Peripheral */
+416:                   DMA0CONbits.DIR = 0x1;
+0009DE  A8A381     BSET 0x381, #5
+417:                   /* DMA Addressing Mode: Peripheral Indirect Addressing mode */
+418:                   DMA0CONbits.AMODE = 0x2;
+0009E0  801C01     MOV DMA0CON, W1
+0009E2  2FFCF0     MOV #0xFFCF, W0
+0009E4  608000     AND W1, W0, W0
+0009E6  A05000     BSET W0, #5
+0009E8  881C00     MOV W0, DMA0CON
+419:                   /* Operating Mode: Continuous, Ping-Pong modes disabled */
+420:                   DMA0CONbits.MODE = 0x0;
+0009EA  801C01     MOV DMA0CON, W1
+0009EC  2FFFC0     MOV #0xFFFC, W0
+0009EE  608000     AND W1, W0, W0
+0009F0  881C00     MOV W0, DMA0CON
+421:                   /* automatic DMA Tx initiation by DMA request */
+422:               	DMA0REQ=0x0046;	
+0009F2  200460     MOV #0x46, W0
+0009F4  881C10     MOV W0, DMA0REQ
+423:               	/* Set the data block transfer size of 8 */
+424:                	DMA0CNT=7;
+0009F6  200070     MOV #0x7, W0
+0009F8  881C50     MOV W0, DMA0CNT
+425:                   /* Peripheral Address: ECAN1 Transmit Register */
+426:                   DMA0PAD = &C1TXD;
+0009FA  204420     MOV #0x442, W0
+0009FC  881C40     MOV W0, DMA0PAD
+427:               	/* DPSRAM atart adddress offset value */ 
+428:               //	DMA0STA=__builtin_dmaoffset(&ecan1msgBuf);
+429:                   DMA0STA=__builtin_dmaoffset(ecan1MsgBuf);	
+0009FE  206000     MOV #0x600, W0
+000A00  881C20     MOV W0, DMA0STA
+430:               	/* enable the channel */
+431:               	DMA0CONbits.CHEN=1;
+000A02  A8E381     BSET 0x381, #7
+432:               	
+433:               //	/* initialise the DMA channel 2 for ECAN Rx */
+434:               //	/* clear the collission flags */
+435:               //	DMACS0=0;
+436:               //    /* setup channel 2 for peripheral indirect addressing mode 
+437:               //    normal operation, word operation and select as Rx to peripheral */
+438:               //    DMA2CON=0x0020;
+439:               //    /* setup the address of the peripheral ECAN1 (C1RXD) */ 
+440:               //	DMA2PAD=0x0440;	
+441:                   /* Data Transfer Size: Word Transfer Mode */
+442:                   DMA2CONbits.SIZE = 0x0;
+000A04  A9C399     BCLR 0x399, #6
+443:                   /* Data Transfer Direction: Peripheral to DMA RAM */
+444:                   DMA2CONbits.DIR = 0x0;
+000A06  A9A399     BCLR 0x399, #5
+445:                   /* DMA Addressing Mode: Peripheral Indirect Addressing mode */
+446:                   DMA2CONbits.AMODE = 0x2;
+000A08  801CC1     MOV DMA2CON, W1
+000A0A  2FFCF0     MOV #0xFFCF, W0
+000A0C  608000     AND W1, W0, W0
+000A0E  A05000     BSET W0, #5
+000A10  881CC0     MOV W0, DMA2CON
+447:                   /* Operating Mode: Continuous, Ping-Pong modes disabled */
+448:                   DMA2CONbits.MODE = 0x0;
+000A12  801CC1     MOV DMA2CON, W1
+000A14  2FFFC0     MOV #0xFFFC, W0
+000A16  608000     AND W1, W0, W0
+000A18  881CC0     MOV W0, DMA2CON
+449:                   /* Assign ECAN1 Receive event for DMA Channel 2 */
+450:                   /* automatic DMA Rx initiation by DMA request */
+451:               	DMA2REQ=0x0022;
+000A1A  200220     MOV #0x22, W0
+000A1C  881CD0     MOV W0, DMA2REQ
+452:                	/* Set the data block transfer size of 8 */
+453:                	DMA2CNT=7;
+000A1E  200070     MOV #0x7, W0
+000A20  881D10     MOV W0, DMA2CNT
+454:                   /* Peripheral Address: ECAN1 Receive Register */
+455:                   DMA2PAD = &C1RXD;	
+000A22  204400     MOV #0x440, W0
+000A24  881D00     MOV W0, DMA2PAD
+456:               	/* DPSRAM atart adddress offset value */ 
+457:               	DMA2STA=__builtin_dmaoffset(&ecan1MsgBuf);	
+000A26  206000     MOV #0x600, W0
+000A28  881CE0     MOV W0, DMA2STA
+458:               	/* enable the channel */
+459:               	DMA2CONbits.CHEN=1;
+000A2A  A8E399     BSET 0x399, #7
+460:               }	 
+000A2C  FA8000     ULNK
+000A2E  060000     RETURN
+---  /home/dracula/MPLABXProjects/QEI/delay.c  ----------------------------------------------------------
+1:                 /* 
+2:                  * File:   delay.c   
+3:                  * Author: dracula
+4:                  * Comments:
+5:                  * Revision history: EDITION 0.1 
+6:                  */
+7:                 
+8:                 /******************************************************************************/
+9:                 /* Files to Include                                                           */
+10:                /******************************************************************************/
+11:                
+12:                /* Device header file */
+13:                #if defined(__XC16__)
+14:                    #include <xc.h>
+15:                #elif defined(__C30__)
+16:                    #if defined(__dsPIC33E__)
+17:                    	#include <p33Exxxx.h>
+18:                    #elif defined(__dsPIC33F__)
+19:                    	#include <p33Fxxxx.h>
+20:                    #endif
+21:                #endif
+22:                
+23:                /******************************************************************************/
+24:                /* User Functions                                                             */
+25:                /******************************************************************************/
+26:                
+27:                /* <Initialize variables in delay.h and insert code for user algorithms.> */
+28:                
+29:                #include "delay.h"
+30:                
+31:                unsigned int temp_count;
+32:                
+33:                #if defined(__dsPIC33F__)
+34:                
+35:                void Delay( unsigned int delay_count ) 
+36:                {
+000C94  FA0002     LNK #0x2
+000C96  780F00     MOV W0, [W14]
+37:                	temp_count = delay_count +1;
+000C98  E8001E     INC [W14], W0
+000C9A  8840B0     MOV W0, temp_count
+38:                	asm volatile("outer: dec _temp_count");	
+000C9C  ED2816     DEC temp_count
+39:                	asm volatile("cp0 _temp_count");
+000C9E  E20816     CP0 temp_count
+40:                	asm volatile("bra z, done");
+000CA0  320005     BRA Z, done
+41:                	asm volatile("do #3200, inner" );	
+000CA2  080C80     DO #3200, inner
+000CA4  000001     NOP
+42:                	asm volatile("nop");
+000CA6  000000     NOP
+43:                	asm volatile("inner: nop");
+000CA8  000000     NOP
+44:                	asm volatile("bra outer");
+000CAA  37FFF8     BRA outer
+45:                	asm volatile("done:");
+46:                }
+000CAC  FA8000     ULNK
+000CAE  060000     RETURN
+47:                	
+48:                
+49:                void Delay_Us( unsigned int delayUs_count )
+50:                {
+000CB0  FA0002     LNK #0x2
+000CB2  780F00     MOV W0, [W14]
+51:                	temp_count = delayUs_count +1;
+000CB4  E8001E     INC [W14], W0
+000CB6  8840B0     MOV W0, temp_count
+52:                	asm volatile("outer1: dec _temp_count");	
+000CB8  ED2816     DEC temp_count
+53:                	asm volatile("cp0 _temp_count");
+000CBA  E20816     CP0 temp_count
+54:                	asm volatile("bra z, done1");
+000CBC  320005     BRA Z, done1
+55:                	asm volatile("do #1500, inner1" );	
+000CBE  0805DC     DO #1500, inner1
+000CC0  000001     NOP
+56:                	asm volatile("nop");
+000CC2  000000     NOP
+57:                	asm volatile("inner1: nop");
+000CC4  000000     NOP
+58:                	asm volatile("bra outer1");
+000CC6  37FFF8     BRA outer1
+59:                	asm volatile("done1:");
+60:                }		
+000CC8  FA8000     ULNK
+000CCA  060000     RETURN
+61:                #elif defined(__PIC24H__)
+62:                void Delay( unsigned int delay_count ) 
+63:                {
+64:                	temp_count = delay_count +1;
+65:                	asm volatile("outer: dec _temp_count");	
+66:                	asm volatile("cp0 _temp_count");
+67:                	asm volatile("bra z, done");
+68:                	asm volatile("repeat #3200" );	
+69:                	asm volatile("nop");
+70:                	asm volatile("repeat #3200" );	
+71:                	asm volatile("nop");
+72:                	asm volatile("bra outer");
+73:                	asm volatile("done:");
+74:                }
+75:                	
+76:                
+77:                void Delay_Us( unsigned int delayUs_count )
+78:                {
+79:                	temp_count = delayUs_count +1;
+80:                	asm volatile("outer1: dec _temp_count");	
+81:                	asm volatile("cp0 _temp_count");
+82:                	asm volatile("bra z, done1");
+83:                	asm volatile("repeat #1500" );	
+84:                	asm volatile("nop");
+85:                	asm volatile("repeat #1500" );	
+86:                	asm volatile("nop");
+87:                	asm volatile("bra outer1");
+88:                	asm volatile("done1:");
+89:                }
+90:                
+91:                #endif
