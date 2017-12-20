@@ -64,7 +64,10 @@ void InitApp(void)
     //***************************
     //RPINR18bits.U1RXR = 0;
     //RPINR18bits.U1RXR = 19;
-    RPINR18bits.U1RXR = 20;
+//    /*square board*/
+//    RPINR18bits.U1RXR = 20;
+    /*snake board*/
+    RPINR18bits.U1RXR = 5;
     //***************************
     // Assign U1CTS To Pin RP1
     //***************************
@@ -79,7 +82,10 @@ void InitApp(void)
     //***************************
     //RPOR1bits.RP2R = 3;
     //RPOR6bits.RP12R = 3;
-    RPOR2bits.RP4R = 3;
+//    /*square board*/
+//    RPOR2bits.RP4R = 3;
+    /*square board*/
+    RPOR3bits.RP6R = 3;
     //***************************
     // Assign U1RTS To Pin RP3
     //***************************
@@ -110,7 +116,7 @@ void InitApp(void)
     //***************************
     // Assign ECAN1 C1TxD To Pin RP14
     //***************************
-    RPOR7bits.RP14R = 14;
+    RPOR7bits.RP14R = 16;
     //*************************************************************
     // Lock Registers
     //*************************************************************
@@ -225,7 +231,7 @@ void UartInit(void)
     U1MODEbits.UARTEN = 1; // Enable UART
     U1STAbits.UTXEN = 1; // Enable UART Tx
     /* wait at least 104 usec (1/9600) before sending first char */
-    DELAY_105us
+    //DELAY_105us
 //    int i;
 //    for(i = 0; i < 4160; i++)
 //    {
