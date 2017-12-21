@@ -109,7 +109,7 @@ void PwmInit(void)
     P1TPER=1999;     // period:50us
     //P1SECMP=0x0000;
     PWM1CON1=0x0FFF;
-    PWM1CON2=0x0040;
+    PWM1CON2=0x0004;
     P1OVDCON=0xFF00;
     //P1FLTACON=0x0080;
     //P1DTCON1=0x0000;
