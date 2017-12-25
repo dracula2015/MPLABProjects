@@ -26,7 +26,7 @@
 #include "user.h"            /* variables/params used by user.c               */
 
 #define FCY 40000000
-#define BAUDRATE 57600//9600  
+#define BAUDRATE 115200//57600//9600  
 #define BRGVAL ((FCY/BAUDRATE)/16)-1
 
 #define FCAN  	      	40000000 
@@ -64,10 +64,10 @@ void InitApp(void)
     //***************************
     //RPINR18bits.U1RXR = 0;
     //RPINR18bits.U1RXR = 19;
-//    /*square board*/
-//    RPINR18bits.U1RXR = 20;
-    /*snake board*/
-    RPINR18bits.U1RXR = 5;
+    /*square board*/
+    RPINR18bits.U1RXR = 20;
+//    /*snake board*/
+//    RPINR18bits.U1RXR = 5;
     //***************************
     // Assign U1CTS To Pin RP1
     //***************************
@@ -82,10 +82,10 @@ void InitApp(void)
     //***************************
     //RPOR1bits.RP2R = 3;
     //RPOR6bits.RP12R = 3;
-//    /*square board*/
-//    RPOR2bits.RP4R = 3;
     /*square board*/
-    RPOR3bits.RP6R = 3;
+    RPOR2bits.RP4R = 3;
+//    /*snake board*/
+//    RPOR3bits.RP6R = 3;
     //***************************
     // Assign U1RTS To Pin RP3
     //***************************

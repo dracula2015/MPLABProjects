@@ -122,7 +122,7 @@ int main(void)
     canTxMessage[0].frame_type=CAN_FRAME_EXT;
     //canTxMessage.frame_type=CAN_FRAME_STD;
     canTxMessage[0].buffer=0;
-    canTxMessage[0].id=0x12345667;
+    canTxMessage[0].id=0x12345677;
     canTxMessage[0].data[0]=0x55;
     canTxMessage[0].data[1]=0x55;
     canTxMessage[0].data[2]=0x55;
@@ -133,7 +133,7 @@ int main(void)
     canTxMessage[1].frame_type=CAN_FRAME_EXT;
     //canTxMessage.frame_type=CAN_FRAME_STD;
     canTxMessage[1].buffer=1;
-    canTxMessage[1].id=0x12345668;
+    canTxMessage[1].id=0x12345678;
     canTxMessage[1].data[0]=0x55;
     canTxMessage[1].data[1]=0x55;
     canTxMessage[1].data[2]=0x55;
@@ -144,7 +144,7 @@ int main(void)
     canTxMessage[2].frame_type=CAN_FRAME_EXT;
     //canTxMessage.frame_type=CAN_FRAME_STD;
     canTxMessage[2].buffer=2;
-    canTxMessage[2].id=0x12345669;
+    canTxMessage[2].id=0x12345679;
     canTxMessage[2].data[0]=0x55;
     canTxMessage[2].data[1]=0x55;
     canTxMessage[2].data[2]=0x55;
@@ -152,7 +152,7 @@ int main(void)
 
     
     /* Delay for a second */
-    Delay(Delay_1S_Cnt);
+    //Delay(Delay_1S_Cnt);
 
     /* send a CAN message */
     sendECAN(&canTxMessage[0]);
@@ -222,22 +222,42 @@ int main(void)
 			rxECAN(&canRxMessage[0]);			
 			/* reset the flag when done */
 			canRxMessage[0].buffer_status=CAN_BUF_EMPTY;
-            U1TXREG = canRxMessage[0].data[0];
-            U1TXREG = canRxMessage[0].data[1];
+//            Delay(Delay_5mS_Cnt);
+//            U1TXREG = canRxMessage[0].data[0];
+//            U1TXREG = canRxMessage[0].data[1];
+//            Delay(Delay_5mS_Cnt);
+//            U1TXREG = 0x77;
+//            C1CTRL1bits.WIN=0b1;
+//            Delay(Delay_5mS_Cnt);
+//            U1TXREG = C1BUFPNT1;
+//            U1TXREG = C1BUFPNT1>>8;
+//            Delay(Delay_5mS_Cnt);
+//            U1TXREG = C1RXF0SID;
+//            U1TXREG = C1RXF0SID>>8;
+//            Delay(Delay_5mS_Cnt);
+//            U1TXREG = C1RXF0EID;
+//            U1TXREG = C1RXF0EID>>8;
+//            Delay(Delay_5mS_Cnt);
+//            U1TXREG = C1RXM0SID;
+//            U1TXREG = C1RXM0SID>>8;
+//            Delay(Delay_5mS_Cnt);
+//            U1TXREG = C1RXM0EID;
+//            U1TXREG = C1RXM0EID>>8;
+//            C1CTRL1bits.WIN=0b0;
 		}
-		else if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
+		if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[1]);			
 			/* reset the flag when done */
 			canRxMessage[1].buffer_status=CAN_BUF_EMPTY;
 		}
-        else if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
+        if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[2]);			
 			/* reset the flag when done */
 			canRxMessage[2].buffer_status=CAN_BUF_EMPTY;
 		};
-        U1TXREG = 0x55;
+        //U1TXREG = 0x55;
 #ifdef MANUAL
         {
             /* WRITE TO MESSAGE BUFFER 0 */
@@ -279,9 +299,7 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
     else if(ReceivedChar == 's'){stop = 1; go = 0;}
     else 
     {
-        
     if(ReceivedChar == 'u'){ U1TXREG = 'u'; i = 0;}
-
     else
     {
         count[i] = ReceivedChar;
@@ -291,14 +309,17 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
         canTxMessage[0].data[0]=ReceivedChar;
         canTxMessage[0].data[1]=ReceivedChar+1;
         canTxMessage[0].data[2]=ReceivedChar+2;
+        U1TXREG = canTxMessage[0].data[0];
+        U1TXREG = canTxMessage[0].data[1];
+        U1TXREG = canTxMessage[0].data[2];
+        Delay(Delay_5mS_Cnt);
         sendECAN(&canTxMessage[0]);
     }
-    
     }
-    U1TXREG = QEIPosHigh >> 8;
-    U1TXREG = QEIPosHigh;
-    U1TXREG = QEIPosLow >> 8;
-    U1TXREG = QEIPosLow;
+//    U1TXREG = QEIPosHigh >> 8;
+//    U1TXREG = QEIPosHigh;
+//    U1TXREG = QEIPosLow >> 8;
+//    U1TXREG = QEIPosLow;
     IFS0bits.U1RXIF = 0;
 }
 
@@ -326,26 +347,30 @@ void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)
 	/* check to see if the interrupt is caused by receive */     	 
     if(C1INTFbits.RBIF)
     {
-	    /* check to see if buffer 1 is full */
-	    if(C1RXFUL1bits.RXFUL1)
+	    /* check to see if buffer 3 is full */
+	    if(C1RXFUL1bits.RXFUL3)
 	    {			
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[0].buffer_status=CAN_BUF_FULL;
-			canRxMessage[0].buffer=1;	
+			canRxMessage[0].buffer=3;	
+//            U1TXREG = 0x33;
+//            U1TXREG = ecan1MsgBuf[3][0];
 		}		
-		/* check to see if buffer 2 is full */
-		else if(C1RXFUL1bits.RXFUL2)
+		/* check to see if buffer 4 is full */
+		else if(C1RXFUL1bits.RXFUL4)
 		{
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[1].buffer_status=CAN_BUF_FULL;
-			canRxMessage[1].buffer=2;					
+			canRxMessage[1].buffer=4;
+//            U1TXREG = 0x44;
 		}
-		/* check to see if buffer 3 is full */
-		else if(C1RXFUL1bits.RXFUL3)
+		/* check to see if buffer 5 is full */
+		else if(C1RXFUL1bits.RXFUL5)
 		{
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[2].buffer_status=CAN_BUF_FULL;
-			canRxMessage[2].buffer=3;					
+			canRxMessage[2].buffer=5;
+//            U1TXREG = 0x55;
 		}
 		else;
 		/* clear flag */
@@ -355,6 +380,7 @@ void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)
     {
 	    /* clear flag */
 		C1INTFbits.TBIF = 0;	    
+//        U1TXREG = 0x66;
 	}
 	else;
 	

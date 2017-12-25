@@ -21,7 +21,7 @@
 #endif
 
 #include "ecan.h"
-
+#include "delay.h"
 void sendECAN(mID *message)
 {
 	unsigned long word0=0;
@@ -97,8 +97,47 @@ void sendECAN(mID *message)
 		ecan1MsgBuf[message->buffer][5]=((message->data[5] << 8) + message->data[4]);
 		ecan1MsgBuf[message->buffer][6]=((message->data[7] << 8) + message->data[6]);
 	}
+//    U1TXREG = message->buffer;
+//    U1TXREG = ecan1MsgBuf[message->buffer][0];
+//    U1TXREG = ecan1MsgBuf[message->buffer][0] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][1];
+//    U1TXREG = ecan1MsgBuf[message->buffer][1] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][2];
+//    U1TXREG = ecan1MsgBuf[message->buffer][3] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][3];
+//    U1TXREG = ecan1MsgBuf[message->buffer][3] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][4];
+//    U1TXREG = ecan1MsgBuf[message->buffer][4] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][5];
+//    U1TXREG = ecan1MsgBuf[message->buffer][5] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][6];
+//    U1TXREG = ecan1MsgBuf[message->buffer][6] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][7];
+//    U1TXREG = ecan1MsgBuf[message->buffer][7] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = C1EC+1;
 	/* set the message for transmission */
-	C1TR01CONbits.TXREQ0=1;
+    if(message->buffer==0)
+    {
+        C1TR01CONbits.TXREQ0=1;
+    }
+    else if(message->buffer==1)
+    {
+        C1TR01CONbits.TXREQ1=1;
+    }
+    else if(message->buffer==2)
+    {
+        C1TR23CONbits.TXREQ2=1;
+    }
+    else;
+//    U1TXREG = C1EC+1;
 }
 
 /******************************************************************************
@@ -191,6 +230,32 @@ void rxECAN(mID *message)
 		message->data[7]=(unsigned char)((ecan1MsgBuf[message->buffer][6] & 0xFF00) >> 8);
 		message->data_length=(unsigned char)(ecan1MsgBuf[message->buffer][2] & 0x000F);
 	}
+//    U1TXREG = message->buffer;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][0];
+//    U1TXREG = ecan1MsgBuf[message->buffer][0] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][1];
+//    U1TXREG = ecan1MsgBuf[message->buffer][1] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][2];
+//    U1TXREG = ecan1MsgBuf[message->buffer][3] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][3];
+//    U1TXREG = ecan1MsgBuf[message->buffer][3] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][4];
+//    U1TXREG = ecan1MsgBuf[message->buffer][4] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][5];
+//    U1TXREG = ecan1MsgBuf[message->buffer][5] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][6];
+//    U1TXREG = ecan1MsgBuf[message->buffer][6] >> 8;
+//    Delay(Delay_5mS_Cnt);
+//    U1TXREG = ecan1MsgBuf[message->buffer][7];
+//    U1TXREG = ecan1MsgBuf[message->buffer][7] >> 8;
+//    Delay(Delay_5mS_Cnt);
 	clearRxFlags(message->buffer);	
 }
 
@@ -206,17 +271,17 @@ void rxECAN(mID *message)
 ******************************************************************************/
 void clearRxFlags(unsigned char buffer_number)
 {
-	if((C1RXFUL1bits.RXFUL1) && (buffer_number==1))
+	if((C1RXFUL1bits.RXFUL3) && (buffer_number==3))
 		/* clear flag */
-		C1RXFUL1bits.RXFUL1=0;		
+		C1RXFUL1bits.RXFUL3=0;		
 	/* check to see if buffer 2 is full */
-	else if((C1RXFUL1bits.RXFUL2) && (buffer_number==2))
+	else if((C1RXFUL1bits.RXFUL4) && (buffer_number==4))
 		/* clear flag */
-		C1RXFUL1bits.RXFUL2=0;				
+		C1RXFUL1bits.RXFUL4=0;				
 	/* check to see if buffer 3 is full */
-	else if((C1RXFUL1bits.RXFUL3) && (buffer_number==3))
+	else if((C1RXFUL1bits.RXFUL5) && (buffer_number==5))
 		/* clear flag */
-		C1RXFUL1bits.RXFUL3=0;				
+		C1RXFUL1bits.RXFUL5=0;				
 	else;
 
 }
@@ -237,6 +302,10 @@ void ECANInit (void)
 	/* put the module in configuration mode */
 	C1CTRL1bits.REQOP=4;
 	while(C1CTRL1bits.OPMODE != 4);
+    
+    /* FCAN is selected to be FCY
+    FCAN = FCY = 40MHz */
+	C1CTRL1bits.CANCKS = 0x1;
 	/*
 	Bit Time = (Sync Segment + Propagation Delay + Phase Segment 1 + Phase Segment 2)=20*TQ
 	Phase Segment 1 = 8TQ
@@ -260,8 +329,8 @@ void ECANInit (void)
 	C1CFG1bits.SJW = 0x3;
     /* Baud Rate Prescaler bits set to 1:1, i.e., TQ = (2*1*1)/ FCAN */
 	C1CFG1bits.BRP = BRP_VAL;
-	/* 4 CAN Messages to be buffered in DMA RAM */	
-	C1FCTRLbits.DMABS=0b000;
+	/* 6 CAN Messages to be buffered in DMA RAM */	
+	C1FCTRLbits.DMABS=0b001;
 	
 	/* Filter configuration */
 	/* Enable window to access the filter configuration registers */
@@ -280,7 +349,7 @@ void ECANInit (void)
     C1RXM0EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
 	C1RXM0SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
 	/* configure accpetence filter 0 
-	configure accpetence filter 1 - accept only XTD ID 0x12345677 
+	configure accpetence filter 0 - accept only XTD ID 0x12345677 
 	setup the filter to accept only extended message 0x12345677, 
 	the macro when called as CAN_FILTERMASK2REG_EID0(0x5677) 
 	will write the register C1RXF1EID to include extended 
@@ -334,6 +403,17 @@ void ECANInit (void)
 	
 	/* select acceptance mask 2 filter 2 and buffer 5 */
 	C1FMSKSEL1bits.F2MSK=0b10;	
+    /* configure accpetence mask 2 - match id in filter 1 	
+	setup the mask to check every bit of the extended message, 
+	the macro when called as CAN_FILTERMASK2REG_EID0(0xFFFF) 
+	will write the register C1RXM1EID to include extended 
+	message id bits EID0 to EID15 in filter comparison. 
+	the macro when called as CAN_FILTERMASK2REG_EID1(0x1FFF) 
+	will write the register C1RXM1SID to include extended 
+	message id bits EID16 to EID28 in filter comparison. 	
+	*/ 			
+	C1RXM2EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+	C1RXM2SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
 	/* configure acceptance filter 2 
 	configure accpetence filter 2 - accept only XTD ID 0x12345679 
 	setup the filter to accept only extended message 0x12345679, 
@@ -360,6 +440,9 @@ void ECANInit (void)
 	/* put the module in normal mode */
 	C1CTRL1bits.REQOP=0;
 	while(C1CTRL1bits.OPMODE != 0);	
+    /* put the module in loopback mode */
+	C1CTRL1bits.REQOP=0b10;
+	while(C1CTRL1bits.OPMODE != 0b10);	
 	
 	/* clear the buffer and overflow flags */
 	C1RXFUL1=C1RXFUL2=C1RXOVF1=C1RXOVF2=0x0000;
@@ -434,8 +517,8 @@ void DMAInit(void)
     /* Peripheral Address: ECAN1 Transmit Register */
     DMA0PAD = &C1TXD;
 	/* DPSRAM atart adddress offset value */ 
-//	DMA0STA=__builtin_dmaoffset(&ecan1msgBuf);
-    DMA0STA=__builtin_dmaoffset(ecan1MsgBuf);	
+//	DMA0STA=__builtin_dmaoffset(ecan1msgBuf);
+    DMA0STA=__builtin_dmaoffset(&ecan1MsgBuf);	
 	/* enable the channel */
 	DMA0CONbits.CHEN=1;
 	
