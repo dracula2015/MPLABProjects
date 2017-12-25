@@ -237,6 +237,10 @@ void ECANInit (void)
 	/* put the module in configuration mode */
 	C1CTRL1bits.REQOP=4;
 	while(C1CTRL1bits.OPMODE != 4);
+    
+    /* FCAN is selected to be FCY
+    FCAN = FCY = 40MHz */
+	C1CTRL1bits.CANCKS = 0x1;
 	/*
 	Bit Time = (Sync Segment + Propagation Delay + Phase Segment 1 + Phase Segment 2)=20*TQ
 	Phase Segment 1 = 8TQ
@@ -280,7 +284,7 @@ void ECANInit (void)
     C1RXM0EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
 	C1RXM0SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
 	/* configure accpetence filter 0 
-	configure accpetence filter 1 - accept only XTD ID 0x12345677 
+	configure accpetence filter 0 - accept only XTD ID 0x12345677 
 	setup the filter to accept only extended message 0x12345677, 
 	the macro when called as CAN_FILTERMASK2REG_EID0(0x5677) 
 	will write the register C1RXF1EID to include extended 
@@ -334,6 +338,17 @@ void ECANInit (void)
 	
 	/* select acceptance mask 2 filter 2 and buffer 3 */
 	C1FMSKSEL1bits.F2MSK=0b10;	
+    /* configure accpetence mask 2 - match id in filter 1 	
+	setup the mask to check every bit of the extended message, 
+	the macro when called as CAN_FILTERMASK2REG_EID0(0xFFFF) 
+	will write the register C1RXM1EID to include extended 
+	message id bits EID0 to EID15 in filter comparison. 
+	the macro when called as CAN_FILTERMASK2REG_EID1(0x1FFF) 
+	will write the register C1RXM1SID to include extended 
+	message id bits EID16 to EID28 in filter comparison. 	
+	*/ 			
+	C1RXM2EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+	C1RXM2SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
 	/* configure acceptance filter 2 
 	configure accpetence filter 2 - accept only XTD ID 0x12345679 
 	setup the filter to accept only extended message 0x12345679, 
@@ -425,8 +440,8 @@ void DMAInit(void)
     /* Peripheral Address: ECAN1 Transmit Register */
     DMA0PAD = &C1TXD;
 	/* DPSRAM atart adddress offset value */ 
-//	DMA0STA=__builtin_dmaoffset(&ecan1msgBuf);
-    DMA0STA=__builtin_dmaoffset(ecan1MsgBuf);	
+//	DMA0STA=__builtin_dmaoffset(ecan1msgBuf);
+    DMA0STA=__builtin_dmaoffset(&ecan1MsgBuf);	
 	/* enable the channel */
 	DMA0CONbits.CHEN=1;
 	

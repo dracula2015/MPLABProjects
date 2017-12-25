@@ -200,13 +200,13 @@ int main(void)
             canTxMessage.data[1]=canRxMessage[0].data[1];
             sendECAN(&canTxMessage);
 		}
-		else if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
+		if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[1]);			
 			/* reset the flag when done */
 			canRxMessage[1].buffer_status=CAN_BUF_EMPTY;
 		}
-        else if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
+        if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[2]);			
 			/* reset the flag when done */

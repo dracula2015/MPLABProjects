@@ -9,7 +9,7 @@
 #ifndef XC_HEADER_ECAN_H
 #define	XC_HEADER_ECAN_H
 
-/* CAN Baud Rate Configuration 		*/
+/* CAN Baud Rate Configuration */
 #define FCAN  	      	40000000 
 #define BITRATE 		1000000  
 #define NTQ 			20		// 20 Time Quanta in a Bit Time
@@ -17,7 +17,7 @@
 
 /* Defines used in ecan.c */
 /* ECAN message buffer length */
-#define ECAN1_MSG_BUF_LENGTH 	32
+#define ECAN1_MSG_BUF_LENGTH 	4//32
 
 /* ECAN message type identifiers */
 #define CAN_MSG_DATA	0x01
