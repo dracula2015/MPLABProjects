@@ -51,6 +51,9 @@ void ConfigureOscillator(void)
 	PLLFBD=41;					// M=43
 	CLKDIVbits.PLLPOST=0;		// N1=2
 	CLKDIVbits.PLLPRE=0;		// N2=2
+//    PLLFBD=150;					// M=152
+//	CLKDIVbits.PLLPOST=0;		// N1=2
+//	CLKDIVbits.PLLPRE=5;		// N2=7
 	OSCTUN=0x0015;              // Tune FRC oscillator 8Mhz, if FRC is used
     // Disable Watch Dog Timer
 	RCONbits.SWDTEN=0;

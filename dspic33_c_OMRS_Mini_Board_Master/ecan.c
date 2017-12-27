@@ -324,7 +324,8 @@ void ECANInit (void)
 	/* Propagation Segment time is 5 TQ */
 	C1CFG2bits.PRSEG = 0x4;
 	/* Bus line is sampled three times at the sample point */
-	C1CFG2bits.SAM = 0x1;
+//	C1CFG2bits.SAM = 0x1;
+    C1CFG2bits.SAM = 0x0;
     /* Synchronization Jump Width set to 4 TQ */
 	C1CFG1bits.SJW = 0x3;
     /* Baud Rate Prescaler bits set to 1:1, i.e., TQ = (2*1*1)/ FCAN */
@@ -438,8 +439,8 @@ void ECANInit (void)
 	C1CTRL1bits.WIN=0;
 		
 	/* put the module in normal mode */
-	C1CTRL1bits.REQOP=0;
-	while(C1CTRL1bits.OPMODE != 0);	
+//	C1CTRL1bits.REQOP=0;
+//	while(C1CTRL1bits.OPMODE != 0);	
     /* put the module in loopback mode */
 	C1CTRL1bits.REQOP=0b10;
 	while(C1CTRL1bits.OPMODE != 0b10);	
