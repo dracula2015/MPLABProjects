@@ -207,8 +207,8 @@ int main(void)
 			rxECAN(&canRxMessage[2]);			
 			/* reset the flag when done */
 			canRxMessage[2].buffer_status=CAN_BUF_EMPTY;
-            canTxMessage.data[0]=canRxMessage[0].data[0];
-            canTxMessage.data[1]=canRxMessage[0].data[0];
+            canTxMessage.data[0]=canRxMessage[2].data[0];
+            canTxMessage.data[1]=canRxMessage[2].data[1];
             sendECAN(&canTxMessage);
 		};
 #ifdef MANUAL

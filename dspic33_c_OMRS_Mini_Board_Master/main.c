@@ -225,12 +225,16 @@ int main(void)
 			rxECAN(&canRxMessage[1]);			
 			/* reset the flag when done */
 			canRxMessage[1].buffer_status=CAN_BUF_EMPTY;
+            U1TXREG = canRxMessage[1].data[0];
+            U1TXREG = canRxMessage[1].data[1];
 		}
         else if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[2]);			
 			/* reset the flag when done */
 			canRxMessage[2].buffer_status=CAN_BUF_EMPTY;
+            U1TXREG = canRxMessage[2].data[0];
+            U1TXREG = canRxMessage[2].data[1];
 		};
     };
 }
@@ -256,6 +260,16 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
         canTxMessage[0].data[1]=ReceivedChar+1;
         canTxMessage[0].data[2]=ReceivedChar+2;
         sendECAN(&canTxMessage[0]);
+        
+        canTxMessage[1].data[0]=ReceivedChar+10;
+        canTxMessage[1].data[1]=ReceivedChar+11;
+        canTxMessage[1].data[2]=ReceivedChar+12;
+        sendECAN(&canTxMessage[1]);
+        
+        canTxMessage[2].data[0]=ReceivedChar+20;
+        canTxMessage[2].data[1]=ReceivedChar+21;
+        canTxMessage[2].data[2]=ReceivedChar+22;
+        sendECAN(&canTxMessage[2]);
     }
     
     }

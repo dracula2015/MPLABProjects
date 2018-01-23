@@ -336,6 +336,17 @@ void ECANInit (void)
 	
 	/* select acceptance mask 2 filter 2 and buffer 3 */
 	C1FMSKSEL1bits.F2MSK=0b10;	
+    /* configure accpetence mask 2 - match id in filter 2 	
+	setup the mask to check every bit of the extended message, 
+	the macro when called as CAN_FILTERMASK2REG_EID0(0xFFFF) 
+	will write the register C1RXM1EID to include extended 
+	message id bits EID0 to EID15 in filter comparison. 
+	the macro when called as CAN_FILTERMASK2REG_EID1(0x1FFF) 
+	will write the register C1RXM1SID to include extended 
+	message id bits EID16 to EID28 in filter comparison. 	
+	*/ 			
+	C1RXM2EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+	C1RXM2SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
 	/* configure acceptance filter 2 
 	configure accpetence filter 2 - accept only XTD ID 0x12345679 
 	setup the filter to accept only extended message 0x12345679, 

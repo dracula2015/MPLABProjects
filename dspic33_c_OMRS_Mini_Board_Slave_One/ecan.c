@@ -346,6 +346,18 @@ void ECANInit (void)
 	will write the register C1RXF1SID to include extended 
 	message id bits EID16 to EID28 when doing filter comparison. 	
 	*/ 
+    C1RXM2EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+	C1RXM2SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
+	/* configure acceptance filter 1 
+	configure accpetence filter 1 - accept only XTD ID 0x12345678 
+	setup the filter to accept only extended message 0x12345678, 
+	the macro when called as CAN_FILTERMASK2REG_EID0(0x5678) 
+	will write the register C1RXF1EID to include extended 
+	message id bits EID0 to EID15 when doing filter comparison. 
+	the macro when called as CAN_FILTERMASK2REG_EID1(0x1234) 
+	will write the register C1RXF1SID to include extended 
+	message id bits EID16 to EID28 when doing filter comparison. 	
+	*/ 
 	C1RXF2EID=CAN_FILTERMASK2REG_EID0(0x5679);
 	C1RXF2SID=CAN_FILTERMASK2REG_EID1(0x1234);		
 	/* filter to check for extended ID only */
