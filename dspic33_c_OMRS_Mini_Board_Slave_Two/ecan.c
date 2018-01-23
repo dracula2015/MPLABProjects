@@ -22,6 +22,8 @@
 
 #include "ecan.h"
 
+ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
+
 void sendECAN(mID *message)
 {
 	unsigned long word0=0;

@@ -17,7 +17,7 @@
 
 /* Defines used in ecan.c */
 /* ECAN message buffer length */
-#define ECAN1_MSG_BUF_LENGTH 	32
+#define ECAN1_MSG_BUF_LENGTH 	4
 
 /* ECAN message type identifiers */
 #define CAN_MSG_DATA	0x01

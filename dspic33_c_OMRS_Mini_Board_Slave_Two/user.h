@@ -29,6 +29,8 @@ void QEInit(void);
 void PwmInit(void);
 
 #ifdef MANUAL
+/* Assign 32x8word Message Buffers for ECAN1 in DMA RAM */
+extern unsigned int ecan1MsgBuf[32][8] __attribute__((space(dma)));
 void DMAInit(void);
 void ECANInit(void);
 #endif

@@ -22,6 +22,8 @@
 
 #include "ecan.h"
 
+ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
+
 void sendECAN(mID *message)
 {
 	unsigned long word0=0;
@@ -97,8 +99,20 @@ void sendECAN(mID *message)
 		ecan1MsgBuf[message->buffer][5]=((message->data[5] << 8) + message->data[4]);
 		ecan1MsgBuf[message->buffer][6]=((message->data[7] << 8) + message->data[6]);
 	}
-	/* set the message for transmission */
-	C1TR01CONbits.TXREQ0=1;
+
+    /* check to see if buffer 0 is selected */
+    if(message->buffer==0)
+        /* set the message for transmission */
+        C1TR01CONbits.TXREQ0=1;	
+	/* check to see if buffer 1 is selected */
+	else if(message->buffer==1)
+		/* set the message for transmission */
+		C1TR01CONbits.TXREQ1=1;				
+	/* check to see if buffer 2 is selected */
+	else if(message->buffer==2)
+		/* set the message for transmission */
+		C1TR23CONbits.TXREQ2=1;				
+	else;
 }
 
 /******************************************************************************
@@ -206,17 +220,18 @@ void rxECAN(mID *message)
 ******************************************************************************/
 void clearRxFlags(unsigned char buffer_number)
 {
-	if((C1RXFUL1bits.RXFUL1) && (buffer_number==1))
+    /* check to see if buffer 3 is full */
+	if((C1RXFUL1bits.RXFUL3) && (buffer_number==3))
 		/* clear flag */
-		C1RXFUL1bits.RXFUL1=0;		
-	/* check to see if buffer 2 is full */
-	else if((C1RXFUL1bits.RXFUL2) && (buffer_number==2))
+		C1RXFUL1bits.RXFUL3=0;		
+	/* check to see if buffer 4 is full */
+	else if((C1RXFUL1bits.RXFUL4) && (buffer_number==4))
 		/* clear flag */
-		C1RXFUL1bits.RXFUL2=0;				
-	/* check to see if buffer 3 is full */
-	else if((C1RXFUL1bits.RXFUL3) && (buffer_number==3))
+		C1RXFUL1bits.RXFUL4=0;				
+	/* check to see if buffer 5 is full */
+	else if((C1RXFUL1bits.RXFUL5) && (buffer_number==5))
 		/* clear flag */
-		C1RXFUL1bits.RXFUL3=0;				
+		C1RXFUL1bits.RXFUL5=0;				
 	else;
 
 }
@@ -261,7 +276,7 @@ void ECANInit (void)
     /* Baud Rate Prescaler bits set to 1:1, i.e., TQ = (2*1*1)/ FCAN */
 	C1CFG1bits.BRP = BRP_VAL;
 	/* 4 CAN Messages to be buffered in DMA RAM */	
-	C1FCTRLbits.DMABS=0b000;
+	C1FCTRLbits.DMABS=0b10;
 	
 	/* Filter configuration */
 	/* Enable window to access the filter configuration registers */

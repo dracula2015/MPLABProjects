@@ -17,7 +17,9 @@
 
 /* Defines used in ecan.c */
 /* ECAN message buffer length */
-#define ECAN1_MSG_BUF_LENGTH 	32
+#define ECAN1_MSG_BUF_LENGTH 	8
+/* DMA buffer length can not have a length of 6, 
+   the received messages will not be stored correctly into the chosen receiving buffers */ 
 
 /* ECAN message type identifiers */
 #define CAN_MSG_DATA	0x01

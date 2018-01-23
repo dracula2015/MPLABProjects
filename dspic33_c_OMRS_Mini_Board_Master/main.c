@@ -71,7 +71,7 @@ _FPOR(RST_PWMPIN & PWM1H_ACT_HI & PWM1L_ACT_HI);      // High and Low switches s
 #pragma config ALTI2C = OFF             // Alternate I2C  pins (I2C mapped to SDA1/SCL1 pins)
 #pragma config LPOL = ON                // Motor Control PWM Low Side Polarity bit (PWM module low side output pins have active-high output polarity)
 #pragma config HPOL = ON                // Motor Control PWM High Side Polarity bit (PWM module high side output pins have active-high output polarity)
-#pragma config PWMPIN = OFF             // Motor Control PWM Module Pin Mode bit (PWM module pins controlled by PORT register at device Reset)
+#pragma config PWMPIN = ON             // Motor Control PWM Module Pin Mode bit (PWM module pins controlled by PORT register at device Reset)
 
 // FICD
 #pragma config ICS = PGD3               // Comm Channel Select (Communicate on PGC3/EMUC3 and PGD3/EMUD3)
@@ -81,12 +81,7 @@ _FPOR(RST_PWMPIN & PWM1H_ACT_HI & PWM1L_ACT_HI);      // High and Low switches s
 /* Global Variable Declaration                                                */
 /******************************************************************************/
 /* i.e. uint16_t <variable_name>; */
-/* Assign 32x8word Message Buffers for ECAN1 in DMA RAM */
-#ifdef MANUAL
-unsigned int ecan1MsgBuf[32][8] __attribute__((space(dma)));
-#endif
 
-ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
 mID canTxMessage[3];
 mID canRxMessage[3];
 
@@ -134,9 +129,9 @@ int main(void)
     //canTxMessage.frame_type=CAN_FRAME_STD;
     canTxMessage[1].buffer=1;
     canTxMessage[1].id=0x12345668;
-    canTxMessage[1].data[0]=0x55;
-    canTxMessage[1].data[1]=0x55;
-    canTxMessage[1].data[2]=0x55;
+    canTxMessage[1].data[0]=0x66;
+    canTxMessage[1].data[1]=0x66;
+    canTxMessage[1].data[2]=0x66;
     canTxMessage[1].data_length=3;
     
     canTxMessage[2].message_type=CAN_MSG_DATA;
@@ -145,9 +140,9 @@ int main(void)
     //canTxMessage.frame_type=CAN_FRAME_STD;
     canTxMessage[2].buffer=2;
     canTxMessage[2].id=0x12345669;
-    canTxMessage[2].data[0]=0x55;
-    canTxMessage[2].data[1]=0x55;
-    canTxMessage[2].data[2]=0x55;
+    canTxMessage[2].data[0]=0x77;
+    canTxMessage[2].data[1]=0x77;
+    canTxMessage[2].data[2]=0x77;
     canTxMessage[2].data_length=3;
 
     
@@ -237,37 +232,6 @@ int main(void)
 			/* reset the flag when done */
 			canRxMessage[2].buffer_status=CAN_BUF_EMPTY;
 		};
-        U1TXREG = 0x55;
-#ifdef MANUAL
-        {
-            /* WRITE TO MESSAGE BUFFER 0 */
-            /* CiTRBnSID = 0bxxx1 0010 0011 1101
-            SID<10:0> : 0b100 1000 1111
-            SRR = 0b0
-            IDE = 0b1 */
-            ecan1MsgBuf[0][0] = 0x123D;
-
-            /* CiTRBnEID = 0bxxxx 1111 0000 0000
-            EID<17:6> = 0b1111 0000 0000 */
-            ecan1MsgBuf[0][1] = 0x0F00;
-
-            /* CiTRBnDLC = 0b0000 1100 xxx0 1000
-            EID<5:0> = 0b000011
-            RTR = 0b0
-            RB1 = 0b0
-            RB0 = 0b0
-            DLC = 0b1000 */
-            ecan1MsgBuf[0][2] = 0x0C08;
-            /* WRITE MESSAGE DATA BYTES */
-            ecan1MsgBuf[0][3] = 0xabcd;
-            ecan1MsgBuf[0][4] = 0xabcd;
-            ecan1MsgBuf[0][5] = 0xabcd;
-            ecan1MsgBuf[0][6] = 0xabcd;
-        }
-
-        /* REQUEST MESSAGE BUFFER 0 TRANSMISSION */
-        C1TR01CONbits.TXREQ0 = 0x1;
-#endif        
     };
 }
 
@@ -295,10 +259,10 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
     }
     
     }
-    U1TXREG = QEIPosHigh >> 8;
-    U1TXREG = QEIPosHigh;
-    U1TXREG = QEIPosLow >> 8;
-    U1TXREG = QEIPosLow;
+//    U1TXREG = QEIPosHigh >> 8;
+//    U1TXREG = QEIPosHigh;
+//    U1TXREG = QEIPosLow >> 8;
+//    U1TXREG = QEIPosLow;
     IFS0bits.U1RXIF = 0;
 }
 
@@ -327,25 +291,25 @@ void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)
     if(C1INTFbits.RBIF)
     {
 	    /* check to see if buffer 1 is full */
-	    if(C1RXFUL1bits.RXFUL1)
+	    if(C1RXFUL1bits.RXFUL3)
 	    {			
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[0].buffer_status=CAN_BUF_FULL;
-			canRxMessage[0].buffer=1;	
+			canRxMessage[0].buffer=3;	
 		}		
 		/* check to see if buffer 2 is full */
-		else if(C1RXFUL1bits.RXFUL2)
+		else if(C1RXFUL1bits.RXFUL4)
 		{
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[1].buffer_status=CAN_BUF_FULL;
-			canRxMessage[1].buffer=2;					
+			canRxMessage[1].buffer=4;					
 		}
 		/* check to see if buffer 3 is full */
-		else if(C1RXFUL1bits.RXFUL3)
+		else if(C1RXFUL1bits.RXFUL5)
 		{
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[2].buffer_status=CAN_BUF_FULL;
-			canRxMessage[2].buffer=3;					
+			canRxMessage[2].buffer=5;					
 		}
 		else;
 		/* clear flag */
