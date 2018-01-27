@@ -73,6 +73,8 @@ typedef struct{
     unsigned char data_length;
 }mID;
 
+extern mID canTxMessage[3];
+extern mID canRxMessage[3];
 /* function prototypes as defined in can.c */
 void ECANInit (void);
 void DMAInit(void);

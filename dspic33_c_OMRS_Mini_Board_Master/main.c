@@ -21,69 +21,15 @@
 #endif
 
 #include <stdint.h>        /* Includes uint16_t definition                    */
-#include <stdbool.h>
-//#include <p33FJ128MC804.h>       /* Includes true/false definition                  */
+#include <stdbool.h>       /* Includes true/false definition                  */
 
 #include "system.h"        /* System funct/params, like osc/peripheral config */
 #include "user.h"          /* User funct/params, such as InitApp              */
-
-/* TODO DSPIC33FJ128MC804 Configuration Bit Settings*/
-// 'C' source line config statements
-// FBS
-#pragma config BWRP = WRPROTECT_OFF     // Boot Segment Write Protect (Boot Segment may be written)
-#pragma config BSS = NO_FLASH           // Boot Segment Program Flash Code Protection (No Boot program Flash segment)
-#pragma config RBS = NO_RAM             // Boot Segment RAM Protection (No Boot RAM)
-
-// FSS
-#pragma config SWRP = WRPROTECT_OFF     // Secure Segment Program Write Protect (Secure segment may be written)
-#pragma config SSS = NO_FLASH           // Secure Segment Program Flash Code Protection (No Secure Segment)
-#pragma config RSS = NO_RAM             // Secure Segment Data RAM Protection (No Secure RAM)
-
-// FGS
-#pragma config GWRP = OFF               // General Code Segment Write Protect (User program memory is not write-protected)
-#pragma config GSS = OFF                // General Segment Code Protection (User program memory is not code-protected)
-
-/*
-_FOSCSEL(FNOSC_FRC);                                  // Select Internal FRC at POR
-_FOSC(FCKSM_CSECMD & OSCIOFNC_OFF & POSCMD_XT);       // Enable Clock Switching and Configure Posc in XT mode
-_FPOR(RST_PWMPIN & PWM1H_ACT_HI & PWM1L_ACT_HI);      // High and Low switches set to active-high state 
-*/
-
-// FOSCSEL
-#pragma config FNOSC = PRI              // Primary Oscillator (XT, HS, EV))
-#pragma config IESO = ON                // Internal External Switch Over Mode (Start-up device with FRC, then automatically switch to user-selected oscillator source when ready)
-
-// FOSC
-#pragma config POSCMD = XT              // XT Oscillator Mode
-#pragma config OSCIOFNC = OFF           // OSC2 Pin Function (OSC2 pin has clock out function)
-#pragma config IOL1WAY = ON             // Peripheral Pin Select Configuration (Allow Only One Re-configuration)
-#pragma config FCKSM = CSECMD           // This bit is extremely important? if set to CSDCMD there will be no PWM signal!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//#pragma config FCKSM = CSDCMD         // Clock Switching and Monitor (Both Clock Switching and Fail-Safe Clock Monitor are disabled)
-
-// FWDT
-#pragma config WDTPOST = PS32768        // Watchdog Timer Postscaler (1:32,768)
-#pragma config WDTPRE = PR128           // WDT Prescaler (1:128)
-#pragma config WINDIS = OFF             // Watchdog Timer Window (Watchdog Timer in Non-Window mode)
-#pragma config FWDTEN = OFF             // Watchdog Timer Enable (Watchdog timer always enabled)
-
-// FPOR
-#pragma config FPWRT = PWR128           // POR Timer Value (128ms)
-#pragma config ALTI2C = OFF             // Alternate I2C  pins (I2C mapped to SDA1/SCL1 pins)
-#pragma config LPOL = ON                // Motor Control PWM Low Side Polarity bit (PWM module low side output pins have active-high output polarity)
-#pragma config HPOL = ON                // Motor Control PWM High Side Polarity bit (PWM module high side output pins have active-high output polarity)
-#pragma config PWMPIN = ON             // Motor Control PWM Module Pin Mode bit (PWM module pins controlled by PORT register at device Reset)
-
-// FICD
-#pragma config ICS = PGD3               // Comm Channel Select (Communicate on PGC3/EMUC3 and PGD3/EMUD3)
-#pragma config JTAGEN = OFF             // JTAG Port Enable (JTAG is Disabled)
 
 /******************************************************************************/
 /* Global Variable Declaration                                                */
 /******************************************************************************/
 /* i.e. uint16_t <variable_name>; */
-
-mID canTxMessage[3];
-mID canRxMessage[3];
 
 char ReceivedChar;
 char TransmitChar;
@@ -104,7 +50,6 @@ int QEIPosLow = 0;
 /******************************************************************************/
 int main(void)
 {   
-    
     /* Configure the oscillator for the device */
     ConfigureOscillator();
     /* Initialize IO ports and peripherals */
@@ -144,7 +89,6 @@ int main(void)
     canTxMessage[2].data[1]=0x77;
     canTxMessage[2].data[2]=0x77;
     canTxMessage[2].data_length=3;
-
     
     /* Delay for a second */
     Delay(Delay_1S_Cnt);
@@ -153,7 +97,8 @@ int main(void)
     sendECAN(&canTxMessage[0]);
     sendECAN(&canTxMessage[1]);
     sendECAN(&canTxMessage[2]);
-    
+    LATAbits.LATA8 = 1;
+    LATCbits.LATC0 = 1;
     while(1)
     {
         if(U1STAbits.PERR==1)
@@ -237,106 +182,4 @@ int main(void)
             U1TXREG = canRxMessage[2].data[1];
 		};
     };
-}
-
-void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
-{
-    ReceivedChar = U1RXREG;
-    U1TXREG = ReceivedChar;
-    if(ReceivedChar == 'g'){go = 1;}
-    else if(ReceivedChar == 's'){stop = 1; go = 0;}
-    else 
-    {
-        
-    if(ReceivedChar == 'u'){ U1TXREG = 'u'; i = 0;}
-
-    else
-    {
-        count[i] = ReceivedChar;
-        i++;
-        if(i>=2) i = 0;
-        
-        canTxMessage[0].data[0]=ReceivedChar;
-        canTxMessage[0].data[1]=ReceivedChar+1;
-        canTxMessage[0].data[2]=ReceivedChar+2;
-        sendECAN(&canTxMessage[0]);
-        
-        canTxMessage[1].data[0]=ReceivedChar+10;
-        canTxMessage[1].data[1]=ReceivedChar+11;
-        canTxMessage[1].data[2]=ReceivedChar+12;
-        sendECAN(&canTxMessage[1]);
-        
-        canTxMessage[2].data[0]=ReceivedChar+20;
-        canTxMessage[2].data[1]=ReceivedChar+21;
-        canTxMessage[2].data[2]=ReceivedChar+22;
-        sendECAN(&canTxMessage[2]);
-    }
-    
-    }
-//    U1TXREG = QEIPosHigh >> 8;
-//    U1TXREG = QEIPosHigh;
-//    U1TXREG = QEIPosLow >> 8;
-//    U1TXREG = QEIPosLow;
-    IFS0bits.U1RXIF = 0;
-}
-
-void __attribute__((interrupt, auto_psv)) _U1TXInterrupt(void)
-{
-    IFS0bits.U1TXIF = 0; // clear TX interrupt flag
-    //U1TXREG = 'b'; // Transmit one character
-}
-
-void __attribute__((interrupt, auto_psv)) _QEI1Interrupt(void)
-{
-    U1TXREG = QEIPosHigh >> 8;
-    U1TXREG = QEIPosHigh;
-    U1TXREG = QEIPosLow >> 8;
-    U1TXREG = QEIPosLow;
-    //U1TXREG = QEI1CONbits.UPDN;
-    
-    if(QEI1CONbits.UPDN == 1){posHigh += 1;}
-    else {posHigh -= 1;}
-    IFS3bits.QEI1IF = 0;
-}
-
-void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)  
-{
-	/* check to see if the interrupt is caused by receive */     	 
-    if(C1INTFbits.RBIF)
-    {
-	    /* check to see if buffer 1 is full */
-	    if(C1RXFUL1bits.RXFUL3)
-	    {			
-			/* set the buffer full flag and the buffer received flag */
-			canRxMessage[0].buffer_status=CAN_BUF_FULL;
-			canRxMessage[0].buffer=3;	
-		}		
-		/* check to see if buffer 2 is full */
-		else if(C1RXFUL1bits.RXFUL4)
-		{
-			/* set the buffer full flag and the buffer received flag */
-			canRxMessage[1].buffer_status=CAN_BUF_FULL;
-			canRxMessage[1].buffer=4;					
-		}
-		/* check to see if buffer 3 is full */
-		else if(C1RXFUL1bits.RXFUL5)
-		{
-			/* set the buffer full flag and the buffer received flag */
-			canRxMessage[2].buffer_status=CAN_BUF_FULL;
-			canRxMessage[2].buffer=5;					
-		}
-		else;
-		/* clear flag */
-		C1INTFbits.RBIF = 0;
-	}
-	else if(C1INTFbits.TBIF)
-    {
-	    /* clear flag */
-		C1INTFbits.TBIF = 0;	    
-	}
-	else;
-	
-	/* clear interrupt flag */
-	IFS2bits.C1IF=0;
-    
 }

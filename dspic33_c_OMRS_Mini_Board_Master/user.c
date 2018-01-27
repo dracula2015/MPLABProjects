@@ -22,7 +22,8 @@
 #endif
 
 #include <stdint.h>          /* For uint16_t definition                       */
-#include <stdbool.h>         /* For true/false definition                     */
+#include <stdbool.h>
+#include <p33FJ128MC804.h>         /* For true/false definition                     */
 #include "user.h"            /* variables/params used by user.c               */
 
 #define FCY 40000000
@@ -37,11 +38,8 @@
 #define DELAY_105us asm volatile ("REPEAT,#4201");Nop();//105us delay 
 #define DELAY_10us asm volatile ("REPEAT,#401");Nop();//10us delay 
 
-#ifdef MANUAL
-/* Assign 32x8word Message Buffers for ECAN1 in DMA RAM */
-unsigned int ecan1MsgBuf[32][8] __attribute__((space(dma)));
-#endif
-
+float globalTime = 0;
+long gloalTimeCount = 0;
 /******************************************************************************/
 /* User Functions                                                             */
 /******************************************************************************/
@@ -118,6 +116,8 @@ void InitApp(void)
     /* Setup analog functionality and port direction */
     TRISAbits.TRISA7=0;
     TRISAbits.TRISA10=0;
+    TRISAbits.TRISA8=0;
+    TRISCbits.TRISC0=0;
     /*
     TRISAbits.TRISA0 = 0;
     TRISAbits.TRISA1 = 0;
@@ -131,6 +131,7 @@ void InitApp(void)
     UartInit();
     QEInit();
     PwmInit();
+    TimerInit();
 }
 
 void PwmInit(void)
@@ -163,7 +164,6 @@ void PwmInit(void)
 //        P1DTCON1=0x0000;
 //        P1DTCON2=0x0000;
         // LSB is not used for duty cycle, the realy duty cycle count should be PIDC*/2 !!!!!!
-
 }
 
 void UartInit(void)
@@ -182,22 +182,53 @@ void UartInit(void)
     U1MODEbits.UARTEN = 1; // Enable UART
     U1STAbits.UTXEN = 1; // Enable UART Tx
     /* wait at least 104 usec (1/9600) before sending first char */
-//    DELAY_105us
+    //DELAY_105us
     /* wait at least 10 usec (1/115200) before sending first char */
-    DELAY_10us
-    
+    DELAY_10us 
 }
 
 void QEInit(void)
 {
-
-    MAX1CNT = 36351; //512*71-1=36351
+//    MAX1CNT = 36351; //512*71-1=36351
+    MAX1CNT = 0xFFFF;
     IEC3bits.QEI1IE = 1;
     DFLT1CONbits.QEOUT = 1;
-    DFLT1CONbits.QECK = 2;//1:4????
+    DFLT1CONbits.QECK = 2;//1:4 digital filter clock devision
     QEI1CONbits.QEIM = 7;
     /*
     QEI1CONbits.QEIM = 6;
     QEI1CONbits.POSRES = 1;
     */
+}
+
+void TimerInit(void)
+{
+    /* This code generates an interrupt on every second */
+    ///*
+    T3CONbits.TON = 0; // Stop any 16-bit Timer3 operation
+    T2CONbits.TON = 0; // Stop any 16/32-bit Timer2 operation
+    T2CONbits.T32 = 1; // Enable 32-bit Timer mode
+    T2CONbits.TCS = 0; // Select internal instruction cycle clock
+    T2CONbits.TGATE = 0; // Disable Gated Timer mode
+    T2CONbits.TCKPS = 0b00; // Select 1:1 Prescaler
+    TMR3 = 0x0000; // Clear 32-bit Timer (msw)
+    TMR2 = 0x0000; // Clear 32-bit Timer (lsw)
+    PR3 = 0x262; // Load 32-bit period value (msw)
+    PR2 = 0x5A00; // Load 32-bit period value (lsw)
+    IPC2bits.T3IP = 0x01; // Set Timer3 Interrupt Priority Level
+    IFS0bits.T3IF = 0; // Clear Timer3 Interrupt Flag
+    IEC0bits.T3IE = 1; // Enable Timer3 interrupt
+    T2CONbits.TON = 1; // Start 32-bit Timer
+    //*/
+    
+    T4CONbits.TON = 0; // Stop any 16 Timer4 operation
+    T4CONbits.TCS = 0; // Select internal instruction cycle clock
+    T4CONbits.TGATE = 0; // Disable Gated Timer mode
+    T4CONbits.TCKPS = 0b00; // Select 1:1 Prescaler
+    TMR4 = 0x0000; // Clear timer register
+    PR4 = 0x9C40; // Load the period value,40000*0.025us=1ms
+    IPC6bits.T4IP = 0x01; // Set Timer4 Interrupt Priority Level
+    IFS1bits.T4IF = 0; // Clear Timer4 Interrupt Flag
+    IEC1bits.T4IE = 1; // Enable Timer4 interrupt
+    T4CONbits.TON = 1; // Start Timer
 }

@@ -163,7 +163,6 @@ void PwmInit(void)
 //        P1DTCON1=0x0000;
 //        P1DTCON2=0x0000;
         // LSB is not used for duty cycle, the realy duty cycle count should be PIDC*/2 !!!!!!
-
 }
 
 void UartInit(void)
@@ -184,13 +183,11 @@ void UartInit(void)
     /* wait at least 104 usec (1/9600) before sending first char */
 //    DELAY_105us
     /* wait at least 10 usec (1/115200) before sending first char */
-    DELAY_10us
-    
+    DELAY_10us   
 }
 
 void QEInit(void)
 {
-
     MAX1CNT = 36351; //512*71-1=36351
     IEC3bits.QEI1IE = 1;
     DFLT1CONbits.QEOUT = 1;

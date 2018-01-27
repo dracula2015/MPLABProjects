@@ -438,8 +438,8 @@ void DMAInit(void)
     /* Peripheral Address: ECAN1 Transmit Register */
     DMA0PAD = &C1TXD;
 	/* DPSRAM atart adddress offset value */ 
-//	DMA0STA=__builtin_dmaoffset(&ecan1msgBuf);
-    DMA0STA=__builtin_dmaoffset(ecan1MsgBuf);	
+//	DMA0STA=__builtin_dmaoffset(ecan1msgBuf);
+    DMA0STA=__builtin_dmaoffset(&ecan1MsgBuf);	
 	/* enable the channel */
 	DMA0CONbits.CHEN=1;
 	

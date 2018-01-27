@@ -23,6 +23,8 @@
 #include "ecan.h"
 
 ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
+mID canTxMessage[3];
+mID canRxMessage[3];
 
 void sendECAN(mID *message)
 {
@@ -449,8 +451,8 @@ void DMAInit(void)
     /* Peripheral Address: ECAN1 Transmit Register */
     DMA0PAD = &C1TXD;
 	/* DPSRAM atart adddress offset value */ 
-//	DMA0STA=__builtin_dmaoffset(&ecan1msgBuf);
-    DMA0STA=__builtin_dmaoffset(ecan1MsgBuf);	
+//	DMA0STA=__builtin_dmaoffset(ecan1msgBuf);
+    DMA0STA=__builtin_dmaoffset(&ecan1MsgBuf);	
 	/* enable the channel */
 	DMA0CONbits.CHEN=1;
 	
