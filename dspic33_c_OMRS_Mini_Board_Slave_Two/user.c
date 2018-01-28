@@ -8,7 +8,6 @@
 /******************************************************************************/
 /* Files to Include                                                           */
 /******************************************************************************/
-//#define MANUAL
 
 /* Device header file */
 #if defined(__XC16__)
@@ -37,11 +36,12 @@
 #define DELAY_105us asm volatile ("REPEAT,#4201");Nop();//105us delay 
 #define DELAY_10us asm volatile ("REPEAT,#401");Nop();//10us delay 
 
-#ifdef MANUAL
-/* Assign 32x8word Message Buffers for ECAN1 in DMA RAM */
-unsigned int ecan1MsgBuf[32][8] __attribute__((space(dma)));
-#endif
-
+float globalTime = 0;
+long gloalTimeCount = 0;
+char ReceivedChar;
+char TransmitChar;
+long QEIPos = 0;
+long QEIPosHigh = 0;
 /******************************************************************************/
 /* User Functions                                                             */
 /******************************************************************************/
@@ -188,13 +188,46 @@ void UartInit(void)
 
 void QEInit(void)
 {
-    MAX1CNT = 36351; //512*71-1=36351
+//    MAX1CNT = 36351; //512*71-1=36351
+    MAX1CNT = 0xFFFF;
     IEC3bits.QEI1IE = 1;
     DFLT1CONbits.QEOUT = 1;
-    DFLT1CONbits.QECK = 2;//1:4????
+    DFLT1CONbits.QECK = 2;//1:4 digital filter clock devision
     QEI1CONbits.QEIM = 7;
     /*
     QEI1CONbits.QEIM = 6;
     QEI1CONbits.POSRES = 1;
     */
+}
+
+void TimerInit(void)
+{
+    /* This code generates an interrupt on every second */
+    ///*
+    T3CONbits.TON = 0; // Stop any 16-bit Timer3 operation
+    T2CONbits.TON = 0; // Stop any 16/32-bit Timer2 operation
+    T2CONbits.T32 = 1; // Enable 32-bit Timer mode
+    T2CONbits.TCS = 0; // Select internal instruction cycle clock
+    T2CONbits.TGATE = 0; // Disable Gated Timer mode
+    T2CONbits.TCKPS = 0b00; // Select 1:1 Prescaler
+    TMR3 = 0x0000; // Clear 32-bit Timer (msw)
+    TMR2 = 0x0000; // Clear 32-bit Timer (lsw)
+    PR3 = 0x262; // Load 32-bit period value (msw)
+    PR2 = 0x5A00; // Load 32-bit period value (lsw)
+    IPC2bits.T3IP = 0x01; // Set Timer3 Interrupt Priority Level
+    IFS0bits.T3IF = 0; // Clear Timer3 Interrupt Flag
+    IEC0bits.T3IE = 1; // Enable Timer3 interrupt
+    T2CONbits.TON = 1; // Start 32-bit Timer
+    //*/
+    
+    T4CONbits.TON = 0; // Stop any 16 Timer4 operation
+    T4CONbits.TCS = 0; // Select internal instruction cycle clock
+    T4CONbits.TGATE = 0; // Disable Gated Timer mode
+    T4CONbits.TCKPS = 0b00; // Select 1:1 Prescaler
+    TMR4 = 0x0000; // Clear timer register
+    PR4 = 0x9C40; // Load the period value,40000*0.025us=1ms
+    IPC6bits.T4IP = 0x01; // Set Timer4 Interrupt Priority Level
+    IFS1bits.T4IF = 0; // Clear Timer4 Interrupt Flag
+    IEC1bits.T4IE = 1; // Enable Timer4 interrupt
+    T4CONbits.TON = 1; // Start Timer
 }

@@ -23,6 +23,85 @@
 #include "ecan.h"
 
 ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
+mID canTxMessage;
+mID canRxMessage[3];
+
+void ecanRtrRespond(mID *message)
+{
+	unsigned long word0=0;
+	unsigned long word1=0;
+	unsigned long word2=0;
+	
+	/*
+	Message Format: 
+	Word0 : 0bUUUx xxxx xxxx xxxx
+			     |____________|||
+ 					SID10:0   SRR IDE(bit 0)     
+	Word1 : 0bUUUU xxxx xxxx xxxx
+			   	   |____________|
+						EID17:6
+	Word2 : 0bxxxx xxx0 UUU0 xxxx
+			  |_____||	     |__|
+			  EID5:0 RTR   	  DLC
+	
+	Remote Transmission Request Bit for standard frames 
+	SRR->	"0"	 Normal Message 
+			"1"  Message will request remote transmission
+	Substitute Remote Request Bit for extended frames 
+	SRR->	should always be set to "1" as per CAN specification
+	
+	Extended  Identifier Bit			
+	IDE-> 	"0"  Message will transmit standard identifier
+	   		"1"  Message will transmit extended identifier
+	
+	Remote Transmission Request Bit for extended frames 
+	RTR-> 	"0"  Message transmitted is a normal message
+			"1"  Message transmitted is a remote message
+	Don't care for standard frames 
+	*/
+		
+	/* check to see if the message has an extended ID */
+	if(message->frame_type==CAN_FRAME_EXT)
+	{
+		/* get the extended message id EID28..18*/		
+		word0=(message->id & 0x1FFC0000) >> 16;			
+		/* set the SRR and IDE bit */
+		word0=word0+0x0003;
+		/* the the value of EID17..6 */
+		word1=(message->id & 0x0003FFC0) >> 6;
+		/* get the value of EID5..0 for word 2 */
+		word2=(message->id & 0x0000003F) << 10;			
+	}	
+	else
+	{
+		/* get the SID */
+		word0=((message->id & 0x000007FF) << 2);	
+	}
+	/* check to see if the message is an RTR message */
+	if(message->message_type==CAN_MSG_RTR)
+	{		
+		if(message->frame_type==CAN_FRAME_EXT)
+			word2=word2 | 0x0200;
+		else
+			word0=word0 | 0x0002;	
+								
+		ecan1MsgBuf[message->buffer][0]=word0;
+		ecan1MsgBuf[message->buffer][1]=word1;
+		ecan1MsgBuf[message->buffer][2]=word2;
+	}
+	else
+	{
+		word2=word2+(message->data_length & 0x0F);
+		ecan1MsgBuf[message->buffer][0]=word0;
+		ecan1MsgBuf[message->buffer][1]=word1;
+		ecan1MsgBuf[message->buffer][2]=word2;
+		/* fill the data */
+		ecan1MsgBuf[message->buffer][3]=((message->data[1] << 8) + message->data[0]);
+		ecan1MsgBuf[message->buffer][4]=((message->data[3] << 8) + message->data[2]);
+		ecan1MsgBuf[message->buffer][5]=((message->data[5] << 8) + message->data[4]);
+		ecan1MsgBuf[message->buffer][6]=((message->data[7] << 8) + message->data[6]);
+	}
+}
 
 void sendECAN(mID *message)
 {
@@ -293,7 +372,7 @@ void ECANInit (void)
 	*/ 	
     C1RXF0EID=CAN_FILTERMASK2REG_EID0(0x5677);
 	C1RXF0SID=CAN_FILTERMASK2REG_EID1(0x1234);
-	/* set filter to check for standard ID and accept standard id only */
+	/* filter to check for extended ID only */
 	C1RXM0SID=CAN_SETMIDE(C1RXM0SID);
 	C1RXF0SID=CAN_FILTERXTD(C1RXF0SID);	
 	/* acceptance filter to use buffer 1 for incoming messages */
@@ -368,6 +447,39 @@ void ECANInit (void)
 	/* enable filter 2 */
 	C1FEN1bits.FLTEN2=1;
 	         
+    /* select acceptance mask 0 filter 3 and buffer 0 for automatic remote transmission respond */
+	C1FMSKSEL1bits.F0MSK=0;
+	/* configure accpetence mask 0 - match the id in filter 0 
+	setup the mask to check every bit of the extended message, 
+	the macro when called as CAN_FILTERMASK2REG_EID0(0xFFFF) 
+	will write the register C1RXM1EID to include extended 
+	message id bits EID0 to EID15 in filter comparison. 
+	the macro when called as CAN_FILTERMASK2REG_EID1(0x1FFF) 
+	will write the register C1RXM1SID to include extended 
+	message id bits EID16 to EID28 in filter comparison. 	
+	*/ 	
+    C1RXM0EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+	C1RXM0SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
+	/* configure accpetence filter 0 
+	configure accpetence filter 1 - accept only XTD ID 0x12345677 
+	setup the filter to accept only extended message 0x12345677, 
+	the macro when called as CAN_FILTERMASK2REG_EID0(0x5677) 
+	will write the register C1RXF1EID to include extended 
+	message id bits EID0 to EID15 when doing filter comparison. 
+	the macro when called as CAN_FILTERMASK2REG_EID1(0x1234) 
+	will write the register C1RXF1SID to include extended 
+	message id bits EID16 to EID28 when doing filter comparison. 	
+	*/ 	
+    C1RXF3EID=CAN_FILTERMASK2REG_EID0(0x4321);
+	C1RXF3SID=CAN_FILTERMASK2REG_EID1(0x1234);
+	/* filter to check for extended ID only */
+	C1RXM0SID=CAN_SETMIDE(C1RXM0SID);
+	C1RXF3SID=CAN_FILTERXTD(C1RXF3SID);	
+	/* acceptance filter to use buffer 0 for automatic respond to Remote Frame using */
+	C1BUFPNT1bits.F3BP=0b0000;
+	/* enable filter 0 */
+	C1FEN1bits.FLTEN3=1;
+    
 	/* clear window bit to access ECAN control registers */
 	C1CTRL1bits.WIN=0;
 		
@@ -377,6 +489,8 @@ void ECANInit (void)
 	
 	/* clear the buffer and overflow flags */
 	C1RXFUL1=C1RXFUL2=C1RXOVF1=C1RXOVF2=0x0000;
+    /*Enable Automatic Response to Remote Frame using Message Buffer 0*/
+    C1TR01CONbits.RTREN0=1;
 	/* ECAN1, Buffer 0 is a Transmit Buffer */
 	C1TR01CONbits.TXEN0=1;			
 	/* ECAN1, Buffer 1 is a Receive Buffer */

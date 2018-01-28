@@ -27,66 +27,11 @@
 #include "system.h"        /* System funct/params, like osc/peripheral config */
 #include "user.h"          /* User funct/params, such as InitApp              */
 
-/* TODO DSPIC33FJ128MC804 Configuration Bit Settings*/
-// 'C' source line config statements
-// FBS
-#pragma config BWRP = WRPROTECT_OFF     // Boot Segment Write Protect (Boot Segment may be written)
-#pragma config BSS = NO_FLASH           // Boot Segment Program Flash Code Protection (No Boot program Flash segment)
-#pragma config RBS = NO_RAM             // Boot Segment RAM Protection (No Boot RAM)
-
-// FSS
-#pragma config SWRP = WRPROTECT_OFF     // Secure Segment Program Write Protect (Secure segment may be written)
-#pragma config SSS = NO_FLASH           // Secure Segment Program Flash Code Protection (No Secure Segment)
-#pragma config RSS = NO_RAM             // Secure Segment Data RAM Protection (No Secure RAM)
-
-// FGS
-#pragma config GWRP = OFF               // General Code Segment Write Protect (User program memory is not write-protected)
-#pragma config GSS = OFF                // General Segment Code Protection (User program memory is not code-protected)
-
-/*
-_FOSCSEL(FNOSC_FRC);                                  // Select Internal FRC at POR
-_FOSC(FCKSM_CSECMD & OSCIOFNC_OFF & POSCMD_XT);       // Enable Clock Switching and Configure Posc in XT mode
-_FPOR(RST_PWMPIN & PWM1H_ACT_HI & PWM1L_ACT_HI);      // High and Low switches set to active-high state 
-*/
-
-// FOSCSEL
-#pragma config FNOSC = PRI              // Primary Oscillator (XT, HS, EV))
-#pragma config IESO = ON                // Internal External Switch Over Mode (Start-up device with FRC, then automatically switch to user-selected oscillator source when ready)
-
-// FOSC
-#pragma config POSCMD = XT              // XT Oscillator Mode
-#pragma config OSCIOFNC = OFF           // OSC2 Pin Function (OSC2 pin has clock out function)
-#pragma config IOL1WAY = ON             // Peripheral Pin Select Configuration (Allow Only One Re-configuration)
-#pragma config FCKSM = CSECMD           // This bit is extremely important? if set to CSDCMD there will be no PWM signal!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//#pragma config FCKSM = CSDCMD         // Clock Switching and Monitor (Both Clock Switching and Fail-Safe Clock Monitor are disabled)
-
-// FWDT
-#pragma config WDTPOST = PS32768        // Watchdog Timer Postscaler (1:32,768)
-#pragma config WDTPRE = PR128           // WDT Prescaler (1:128)
-#pragma config WINDIS = OFF             // Watchdog Timer Window (Watchdog Timer in Non-Window mode)
-#pragma config FWDTEN = OFF             // Watchdog Timer Enable (Watchdog timer always enabled)
-
-// FPOR
-#pragma config FPWRT = PWR128           // POR Timer Value (128ms)
-#pragma config ALTI2C = OFF             // Alternate I2C  pins (I2C mapped to SDA1/SCL1 pins)
-#pragma config LPOL = ON                // Motor Control PWM Low Side Polarity bit (PWM module low side output pins have active-high output polarity)
-#pragma config HPOL = ON                // Motor Control PWM High Side Polarity bit (PWM module high side output pins have active-high output polarity)
-#pragma config PWMPIN = ON             // Motor Control PWM Module Pin Mode bit (PWM module pins controlled by PORT register at device Reset)
-
-// FICD
-#pragma config ICS = PGD3               // Comm Channel Select (Communicate on PGC3/EMUC3 and PGD3/EMUD3)
-#pragma config JTAGEN = OFF             // JTAG Port Enable (JTAG is Disabled)
-
 /******************************************************************************/
 /* Global Variable Declaration                                                */
 /******************************************************************************/
 /* i.e. uint16_t <variable_name>; */
 
-mID canTxMessage;
-mID canRxMessage[3];
-
-char ReceivedChar;
-char TransmitChar;
 bool go = 0;
 bool stop = 0;
 bool direction = 0;
@@ -94,17 +39,12 @@ bool direction = 0;
 int count[2]={0,0};
 int motor = 0;
 int i=0;
-int position = 0;
-int posHigh = 0;
-//int posLow = 0;
-int QEIPosHigh = 0;
-int QEIPosLow = 0;
+
 /******************************************************************************/
 /* Main Program                                                               */
 /******************************************************************************/
 int main(void)
-{   
-    
+{      
     /* Configure the oscillator for the device */
     ConfigureOscillator();
     /* Initialize IO ports and peripherals */
@@ -118,15 +58,23 @@ int main(void)
     //canTxMessage.frame_type=CAN_FRAME_STD;
     canTxMessage.buffer=0;
     canTxMessage.id=0x12345677;
-    canTxMessage.data[0]=0x66;
-    canTxMessage.data[1]=0x77;
-    canTxMessage.data_length=2;
+    canTxMessage.data[0]=0x00;
+    canTxMessage.data[1]=0x00;
+    canTxMessage.data[2]=0x00;
+    canTxMessage.data[3]=0x00;
+    canTxMessage.data_length=4;
 
+    QEIPos = (QEIPosHigh << 16) + POS1CNT; 
+    canTxMessage.data[0] = QEIPos >> 24;
+    canTxMessage.data[1] = QEIPos >> 16;
+    canTxMessage.data[2] = QEIPos >> 8;
+    canTxMessage.data[3] = QEIPos;
+    ecanRtrRespond(&canTxMessage);
     /* Delay for a second */
     Delay(Delay_1S_Cnt);
 
     /* send a CAN message */
-    sendECAN(&canTxMessage);
+    //sendECAN(&canTxMessage);
     
     while(1)
     {
@@ -173,17 +121,13 @@ int main(void)
         LATAbits.LATA10=direction;
         P2DC1=(5*motor/3);
         
-        if(posHigh < 0)
-        {
-            QEIPosHigh = (~posHigh) | 0x8000; 
-            QEIPosLow = (~POS1CNT +1);
-        }
-        else
-        {
-            QEIPosHigh = posHigh & 0x7fff;
-            QEIPosLow = POS1CNT;
-        }
-
+        QEIPos = (QEIPosHigh << 16) + POS1CNT; 
+        canTxMessage.data[0] = QEIPos >> 24;
+        canTxMessage.data[1] = QEIPos >> 16;
+        canTxMessage.data[2] = QEIPos >> 8;
+        canTxMessage.data[3] = QEIPos;
+        ecanRtrRespond(&canTxMessage);
+        
         /* check to see when a message is received and move the message 
 		into RAM and parse the message */ 
 		if(canRxMessage[0].buffer_status==CAN_BUF_FULL)
@@ -207,122 +151,5 @@ int main(void)
 			/* reset the flag when done */
 			canRxMessage[2].buffer_status=CAN_BUF_EMPTY;
 		};
-#ifdef MANUAL
-        {
-            /* WRITE TO MESSAGE BUFFER 0 */
-            /* CiTRBnSID = 0bxxx1 0010 0011 1101
-            SID<10:0> : 0b100 1000 1111
-            SRR = 0b0
-            IDE = 0b1 */
-            ecan1MsgBuf[0][0] = 0x123D;
-
-            /* CiTRBnEID = 0bxxxx 1111 0000 0000
-            EID<17:6> = 0b1111 0000 0000 */
-            ecan1MsgBuf[0][1] = 0x0F00;
-
-            /* CiTRBnDLC = 0b0000 1100 xxx0 1000
-            EID<5:0> = 0b000011
-            RTR = 0b0
-            RB1 = 0b0
-            RB0 = 0b0
-            DLC = 0b1000 */
-            ecan1MsgBuf[0][2] = 0x0C08;
-            /* WRITE MESSAGE DATA BYTES */
-            ecan1MsgBuf[0][3] = 0xabcd;
-            ecan1MsgBuf[0][4] = 0xabcd;
-            ecan1MsgBuf[0][5] = 0xabcd;
-            ecan1MsgBuf[0][6] = 0xabcd;
-        }
-
-        /* REQUEST MESSAGE BUFFER 0 TRANSMISSION */
-        C1TR01CONbits.TXREQ0 = 0x1;
-#endif        
     };
-}
-
-void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
-{
-    ReceivedChar = U1RXREG;
-    U1TXREG = ReceivedChar;
-    if(ReceivedChar == 'g'){go = 1;}
-    else if(ReceivedChar == 's'){stop = 1; go = 0;}
-    else 
-    {
-        
-    if(ReceivedChar == 'u'){ U1TXREG = 'u'; i = 0;}
-
-    else
-    {
-        count[i] = ReceivedChar;
-        i++;
-        if(i>=2) i = 0;
-    }
-    
-    }
-    U1TXREG = QEIPosHigh >> 8;
-    U1TXREG = QEIPosHigh;
-    U1TXREG = QEIPosLow >> 8;
-    U1TXREG = QEIPosLow;
-    IFS0bits.U1RXIF = 0;
-}
-
-void __attribute__((interrupt, auto_psv)) _U1TXInterrupt(void)
-{
-    IFS0bits.U1TXIF = 0; // clear TX interrupt flag
-    //U1TXREG = 'b'; // Transmit one character
-}
-
-void __attribute__((interrupt, auto_psv)) _QEI1Interrupt(void)
-{
-    U1TXREG = QEIPosHigh >> 8;
-    U1TXREG = QEIPosHigh;
-    U1TXREG = QEIPosLow >> 8;
-    U1TXREG = QEIPosLow;
-    //U1TXREG = QEI1CONbits.UPDN;
-    
-    if(QEI1CONbits.UPDN == 1){posHigh += 1;}
-    else {posHigh -= 1;}
-    IFS3bits.QEI1IF = 0;
-}
-
-void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)  
-{
-	/* check to see if the interrupt is caused by receive */     	 
-    if(C1INTFbits.RBIF)
-    {
-	    /* check to see if buffer 1 is full */
-	    if(C1RXFUL1bits.RXFUL1)
-	    {			
-			/* set the buffer full flag and the buffer received flag */
-			canRxMessage[0].buffer_status=CAN_BUF_FULL;
-			canRxMessage[0].buffer=1;	
-		}		
-		/* check to see if buffer 2 is full */
-		else if(C1RXFUL1bits.RXFUL2)
-		{
-			/* set the buffer full flag and the buffer received flag */
-			canRxMessage[1].buffer_status=CAN_BUF_FULL;
-			canRxMessage[1].buffer=2;					
-		}
-		/* check to see if buffer 3 is full */
-		else if(C1RXFUL1bits.RXFUL3)
-		{
-			/* set the buffer full flag and the buffer received flag */
-			canRxMessage[2].buffer_status=CAN_BUF_FULL;
-			canRxMessage[2].buffer=3;					
-		}
-		else;
-		/* clear flag */
-		C1INTFbits.RBIF = 0;
-	}
-	else if(C1INTFbits.TBIF)
-    {
-	    /* clear flag */
-		C1INTFbits.TBIF = 0;	    
-	}
-	else;
-	
-	/* clear interrupt flag */
-	IFS2bits.C1IF=0;
-    
 }

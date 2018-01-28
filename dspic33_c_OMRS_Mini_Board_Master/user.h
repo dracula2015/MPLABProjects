@@ -17,6 +17,10 @@
 /* TODO Application specific user parameters used in user.c may go here */
 extern float globalTime;
 extern long gloalTimeCount;
+extern char ReceivedChar;
+extern char TransmitChar;
+extern long QEIPos;
+extern long QEIPosHigh;
 /******************************************************************************/
 /* User Function Prototypes                                                   */
 /******************************************************************************/

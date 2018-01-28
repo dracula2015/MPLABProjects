@@ -40,6 +40,10 @@
 
 float globalTime = 0;
 long gloalTimeCount = 0;
+char ReceivedChar;
+char TransmitChar;
+long QEIPos = 0;
+long QEIPosHigh = 0;
 /******************************************************************************/
 /* User Functions                                                             */
 /******************************************************************************/

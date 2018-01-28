@@ -12,12 +12,15 @@
 /******************************************************************************/
 /* User Level #define Macros                                                  */
 /******************************************************************************/
-//#define MANUAL
 #include "delay.h"
 #include "ecan.h"
 /* TODO Application specific user parameters used in user.c may go here */
-///* Assign 32x8word Message Buffers for ECAN1 in DMA RAM */
-//unsigned int ecan1MsgBuf[32][8] __attribute__((space(dma)));
+extern float globalTime;
+extern long gloalTimeCount;
+extern char ReceivedChar;
+extern char TransmitChar;
+extern long QEIPos;
+extern long QEIPosHigh;
 /******************************************************************************/
 /* User Function Prototypes                                                   */
 /******************************************************************************/
@@ -27,12 +30,6 @@ void InitApp(void);         /* I/O and Peripheral Initialization */
 void UartInit(void);
 void QEInit(void);
 void PwmInit(void);
-
-#ifdef MANUAL
-/* Assign 32x8word Message Buffers for ECAN1 in DMA RAM */
-extern unsigned int ecan1MsgBuf[32][8] __attribute__((space(dma)));
-void DMAInit(void);
-void ECANInit(void);
-#endif
+void TimerInit(void);
 
 #endif

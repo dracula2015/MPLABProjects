@@ -82,8 +82,6 @@
 /* Interrupt Routines                                                         */
 /******************************************************************************/
 
-extern char ReceivedChar;
-extern char TransmitChar;
 extern bool go;
 extern bool stop;
 extern bool direction;
@@ -91,10 +89,6 @@ extern bool direction;
 extern int count[2];
 extern int motor;
 extern int i;
-extern int position;
-extern int posHigh;
-extern int QEIPosHigh;
-extern int QEIPosLow;
 
 /* TODO Add interrupt routine code here. */
 void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
@@ -114,33 +108,28 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
         i++;
         if(i>=2) i = 0;
         
-        canTxMessage[0].data[0]=ReceivedChar;
-        canTxMessage[0].data[1]=ReceivedChar+1;
-        canTxMessage[0].data[2]=ReceivedChar+2;
-        sendECAN(&canTxMessage[0]);
-        
-        canTxMessage[1].data[0]=ReceivedChar+10;
-        canTxMessage[1].data[1]=ReceivedChar+11;
-        canTxMessage[1].data[2]=ReceivedChar+12;
+        canTxMessage[1].data[0]=ReceivedChar;
+        canTxMessage[1].data[1]=ReceivedChar+1;
+        canTxMessage[1].data[2]=ReceivedChar+2;
         sendECAN(&canTxMessage[1]);
         
-        canTxMessage[2].data[0]=ReceivedChar+20;
-        canTxMessage[2].data[1]=ReceivedChar+21;
-        canTxMessage[2].data[2]=ReceivedChar+22;
+        canTxMessage[2].data[0]=ReceivedChar+10;
+        canTxMessage[2].data[1]=ReceivedChar+11;
+        canTxMessage[2].data[2]=ReceivedChar+12;
         sendECAN(&canTxMessage[2]);
+        
+        canTxMessage[3].data[0]=ReceivedChar+20;
+        canTxMessage[3].data[1]=ReceivedChar+21;
+        canTxMessage[3].data[2]=ReceivedChar+22;
+        sendECAN(&canTxMessage[3]);
+        
+        U1TXREG = QEIPos >> 24;
+        U1TXREG = QEIPos >> 16;
+        U1TXREG = QEIPos >> 8;
+        U1TXREG = QEIPos;  
     }
     
     }
-//    U1TXREG = QEIPosHigh >> 8;
-//    U1TXREG = QEIPosHigh;
-//    U1TXREG = QEIPosLow >> 8;
-//    U1TXREG = QEIPosLow;
-//    U1TXREG = POS1CNT>>8;
-//    U1TXREG = POS1CNT;
-//    U1TXREG = sizeof(float);
-//    U1TXREG = sizeof(double);
-//    U1TXREG = sizeof(long);
-//    U1TXREG = sizeof(int);
     IFS0bits.U1RXIF = 0;
 }
 
@@ -150,15 +139,9 @@ void __attribute__((interrupt, auto_psv)) _U1TXInterrupt(void)
 }
 
 void __attribute__((interrupt, auto_psv)) _QEI1Interrupt(void)
-{
-    U1TXREG = QEIPosHigh >> 8;
-    U1TXREG = QEIPosHigh;
-    U1TXREG = QEIPosLow >> 8;
-    U1TXREG = QEIPosLow;
-    //U1TXREG = QEI1CONbits.UPDN;
-    
-    if(QEI1CONbits.UPDN == 1){posHigh += 1;}
-    else {posHigh -= 1;}
+{    
+    if(QEI1CONbits.UPDN == 1){QEIPosHigh += 1;}
+    else {QEIPosHigh -= 1;}
     IFS3bits.QEI1IF = 0;
 }
 
@@ -207,7 +190,7 @@ void __attribute__((__interrupt__, no_auto_psv)) _T3Interrupt(void)
 {
     /* Interrupt Service Routine code goes here */
 //    LATCbits.LATC0 = ~LATCbits.LATC0;
-    LATAbits.LATA8 = ~LATAbits.LATA8;
+//    LATAbits.LATA8 = ~LATAbits.LATA8;
     IFS0bits.T3IF = 0; // Clear Timer3 Interrupt Flag
 }
 
