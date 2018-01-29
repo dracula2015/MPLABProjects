@@ -35,10 +35,7 @@
 bool go = 0;
 bool stop = 0;
 bool direction = 0;
-
-int count[2]={0,0};
 int motor = 0;
-int i=0;
 
 /******************************************************************************/
 /* Main Program                                                               */
@@ -58,10 +55,6 @@ int main(void)
     //canTxMessage.frame_type=CAN_FRAME_STD;
     canTxMessage.buffer=0;
     canTxMessage.id=0x12345679;
-    canTxMessage.data[0]=0x00;
-    canTxMessage.data[1]=0x00;
-    canTxMessage.data[2]=0x00;
-    canTxMessage.data[3]=0x00;
     canTxMessage.data_length=4;
 
     QEIPos = (QEIPosHigh << 16) + POS1CNT; 
@@ -70,11 +63,9 @@ int main(void)
     canTxMessage.data[2] = QEIPos >> 8;
     canTxMessage.data[3] = QEIPos;
     ecanRtrRespond(&canTxMessage);
-    /* Delay for a second */
-    Delay(Delay_1S_Cnt);
 
     /* send a CAN message */
-//    sendECAN(&canTxMessage);
+    sendECAN(&canTxMessage);
     
     while(1)
     {
@@ -93,33 +84,6 @@ int main(void)
         {   
             //LATAbits.LATA1=1;
         }
-        if(stop){
-        LATAbits.LATA7=1;
-        }
-        
-        if(go){
-        LATAbits.LATA7=0;
-        }
-          
-        if(i==0)
-        {            
-            motor = count[0];
-            motor = motor & 0x00FF;
-            motor = motor | (count[1]<<8);
-        }
-        
-        {
-            int temp=0;
-            temp = motor & 0x8000;
-            if(temp)
-            {
-                motor=motor & 0x7fff ;
-                //motor[j]=~(motor[j]-1);
-                direction=0;
-            }else{direction=1;}
-        }
-        LATAbits.LATA10=direction;
-        P2DC1=(5*motor/3);
         
         QEIPos = (QEIPosHigh << 16) + POS1CNT; 
         canTxMessage.data[0] = QEIPos >> 24;
@@ -147,9 +111,39 @@ int main(void)
 			rxECAN(&canRxMessage[2]);			
 			/* reset the flag when done */
 			canRxMessage[2].buffer_status=CAN_BUF_EMPTY;
-            canTxMessage.data[0]=canRxMessage[2].data[0];
-            canTxMessage.data[1]=canRxMessage[2].data[1];
-            sendECAN(&canTxMessage);
+            motor = canRxMessage[2].data[2];
+            motor = (motor<<8) + canRxMessage[2].data[3];
+            if(canRxMessage[2].data[4])
+            {
+                go = true;
+                stop = false;
+            }else
+            {
+                go = false;
+                stop = true;
+            }
 		};
+        
+        {
+            int temp=0;
+            temp = motor & 0x8000;
+            if(temp)
+            {
+                motor=motor & 0x7fff ;
+                //motor[j]=~(motor[j]-1);
+                direction=0;
+            }else{direction=1;}
+        }
+        
+        if(stop){
+        LATAbits.LATA7=1;
+        }
+        
+        if(go){
+        LATAbits.LATA7=0;
+        }
+        
+        LATAbits.LATA10=direction;
+        P2DC1=(5*motor/3);
     };
 }

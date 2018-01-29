@@ -16,7 +16,6 @@
 #include "ecan.h"
 /* TODO Application specific user parameters used in user.c may go here */
 extern float globalTime;
-extern long gloalTimeCount;
 extern char ReceivedChar;
 extern char TransmitChar;
 extern long QEIPos;

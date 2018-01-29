@@ -23,7 +23,7 @@
 #include "ecan.h"
 
 ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
-mID canTxMessage[4];
+mID canTxMessage[5];
 mID canRxMessage[3];
 
 void ecanRtrRespond(mID *message)
@@ -190,8 +190,16 @@ void sendECAN(mID *message)
 	/* check to see if buffer 2 is selected */
 	else if(message->buffer==2)
 		/* set the message for transmission */
-		C1TR23CONbits.TXREQ2=1;				
-	else;
+		C1TR23CONbits.TXREQ2=1;
+    /* check to see if buffer 6 is selected */
+	else if(message->buffer==6)
+        /* set the message for transmission */
+        C1TR67CONbits.TXREQ6=1;	
+	/* check to see if buffer 7 is selected */
+	else if(message->buffer==7)
+		/* set the message for transmission */
+		C1TR67CONbits.TXREQ7=1;
+    else;
 }
 
 /******************************************************************************
@@ -471,12 +479,22 @@ void ECANInit (void)
     /* ECAN1, Buffer 5 is a Receive Buffer */
 	C1TR45CONbits.TXEN5=0;	
     
+    /* ECAN1, Buffer 6 is a Transmit Buffer */
+	C1TR67CONbits.TXEN6=1;			
+	/* ECAN1, Buffer 7 is a Transmit Buffer */
+	C1TR67CONbits.TXEN7=1;	
+    
 	/* Message Buffer 0 Priority Level */
 	C1TR01CONbits.TX0PRI=0b11; 	
     /* Message Buffer 1 Priority Level */
 	C1TR01CONbits.TX1PRI=0b11;
     /* Message Buffer 2 Priority Level */
 	C1TR23CONbits.TX2PRI=0b11;	
+    
+    /* Message Buffer 0 Priority Level */
+	C1TR67CONbits.TX6PRI=0b11; 	
+    /* Message Buffer 1 Priority Level */
+	C1TR67CONbits.TX7PRI=0b11;
 		
 	/* configure the device to interrupt on the receive buffer full flag */
 	/* clear the buffer full flags */

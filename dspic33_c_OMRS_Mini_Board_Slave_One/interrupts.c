@@ -154,7 +154,7 @@ void __attribute__((__interrupt__, no_auto_psv)) _T3Interrupt(void)
 void __attribute__((__interrupt__, no_auto_psv)) _T4Interrupt(void)
 {
     /* Interrupt Service Routine code goes here */
-    gloalTimeCount +=1;
+    globalTime +=0.001;
 //    LATAbits.LATA8 = ~LATAbits.LATA8;
 //    LATCbits.LATC0 = ~LATCbits.LATC0;
     IFS1bits.T4IF = 0; // Clear Timer3 Interrupt Flag

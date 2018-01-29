@@ -97,39 +97,14 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
     U1TXREG = ReceivedChar;
     if(ReceivedChar == 'g'){go = 1;}
     else if(ReceivedChar == 's'){stop = 1; go = 0;}
-    else 
-    {
-        
-    if(ReceivedChar == 'u'){ U1TXREG = 'u'; i = 0;}
-
+    else if(ReceivedChar == 'u'){ U1TXREG = 'u'; i = 0;}
     else
     {
         count[i] = ReceivedChar;
         i++;
         if(i>=2) i = 0;
-        
-        canTxMessage[1].data[0]=ReceivedChar;
-        canTxMessage[1].data[1]=ReceivedChar+1;
-        canTxMessage[1].data[2]=ReceivedChar+2;
-        sendECAN(&canTxMessage[1]);
-        
-        canTxMessage[2].data[0]=ReceivedChar+10;
-        canTxMessage[2].data[1]=ReceivedChar+11;
-        canTxMessage[2].data[2]=ReceivedChar+12;
-        sendECAN(&canTxMessage[2]);
-        
-        canTxMessage[3].data[0]=ReceivedChar+20;
-        canTxMessage[3].data[1]=ReceivedChar+21;
-        canTxMessage[3].data[2]=ReceivedChar+22;
-        sendECAN(&canTxMessage[3]);
-        
-        U1TXREG = QEIPos >> 24;
-        U1TXREG = QEIPos >> 16;
-        U1TXREG = QEIPos >> 8;
-        U1TXREG = QEIPos;  
     }
-    
-    }
+    sendECAN(&canTxMessage[3]);
     IFS0bits.U1RXIF = 0;
 }
 
@@ -197,7 +172,7 @@ void __attribute__((__interrupt__, no_auto_psv)) _T3Interrupt(void)
 void __attribute__((__interrupt__, no_auto_psv)) _T4Interrupt(void)
 {
     /* Interrupt Service Routine code goes here */
-    gloalTimeCount +=1;
+    globalTime +=0.001;
 //    LATAbits.LATA8 = ~LATAbits.LATA8;
 //    LATCbits.LATC0 = ~LATCbits.LATC0;
     IFS1bits.T4IF = 0; // Clear Timer3 Interrupt Flag

@@ -38,12 +38,16 @@
 #define DELAY_105us asm volatile ("REPEAT,#4201");Nop();//105us delay 
 #define DELAY_10us asm volatile ("REPEAT,#401");Nop();//10us delay 
 
-float globalTime = 0;
-long gloalTimeCount = 0;
+float globalTime = 0.0;
+float globalTimePre = 0.0;
 char ReceivedChar;
 char TransmitChar;
 long QEIPos = 0;
 long QEIPosHigh = 0;
+long wheelPos[3] = {0,0,0};
+long wheelPosPre[3] = {0,0,0};
+float wheelSpeed[3] = {0.0,0.0,0.0};
+//float wheelSpeedPre[3] = {0.0,0.0,0.0};
 /******************************************************************************/
 /* User Functions                                                             */
 /******************************************************************************/
