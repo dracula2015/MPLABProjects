@@ -89,7 +89,11 @@ extern bool direction;
 extern int count[2];
 extern int motor;
 extern int i;
-
+extern Vector3f* q;
+extern char debugPause;
+extern float radius;
+extern float speed;
+//extern Vector3f* controlEffect;
 /* TODO Add interrupt routine code here. */
 void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
 {
@@ -97,14 +101,48 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
     U1TXREG = ReceivedChar;
     if(ReceivedChar == 'g'){go = 1;}
     else if(ReceivedChar == 's'){stop = 1; go = 0;}
-    else if(ReceivedChar == 'u'){ U1TXREG = 'u'; i = 0;}
+    else if(ReceivedChar == 'u')
+    { 
+        U1TXREG = 'u'; i = 0;debugPause = 1;
+//        controlEffect->x = -controlEffect->x;
+//        controlEffect->y = -controlEffect->y;
+//        controlEffect->z = -controlEffect->z;
+    }
     else
     {
         count[i] = ReceivedChar;
         i++;
         if(i>=2) i = 0;
+        radius = ReceivedChar / 100;
+//        controlEffect->x = ReceivedChar;
+//        controlEffect->y = ReceivedChar;
+//        controlEffect->z = ReceivedChar;
     }
-    sendECAN(&canTxMessage[3]);
+    
+    DELAY_105us
+    DELAY_105us
+    U1TXREG =  ((long)(1000*q->x))>>24;
+    U1TXREG =  ((long)(1000*q->x))>>16;
+    U1TXREG =  ((long)(1000*q->x))>>8;
+    U1TXREG =  ((long)(1000*q->x));
+    DELAY_105us
+    DELAY_105us
+    DELAY_105us
+    U1TXREG =  ((long)(1000*q->y))>>24;
+    U1TXREG =  ((long)(1000*q->y))>>16;
+    U1TXREG =  ((long)(1000*q->y))>>8;
+    U1TXREG =  ((long)(1000*q->y));
+    DELAY_105us
+    DELAY_105us
+    DELAY_105us
+    U1TXREG =  ((long)(1000*q->z))>>24;
+    U1TXREG =  ((long)(1000*q->z))>>16;
+    U1TXREG =  ((long)(1000*q->z))>>8;
+    U1TXREG =  ((long)(1000*q->z));
+    DELAY_105us
+    DELAY_105us
+    DELAY_105us
+//    sendECAN(&canTxMessage[3]);
     IFS0bits.U1RXIF = 0;
 }
 
@@ -125,26 +163,29 @@ void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)
 	/* check to see if the interrupt is caused by receive */     	 
     if(C1INTFbits.RBIF)
     {
-	    /* check to see if buffer 1 is full */
+	    /* check to see if buffer 3 is full */
 	    if(C1RXFUL1bits.RXFUL3)
 	    {			
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[0].buffer_status=CAN_BUF_FULL;
 			canRxMessage[0].buffer=3;	
+//            U1TXREG = 0x01;
 		}		
-		/* check to see if buffer 2 is full */
-		else if(C1RXFUL1bits.RXFUL4)
+		/* check to see if buffer 4 is full */
+		if(C1RXFUL1bits.RXFUL4)
 		{
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[1].buffer_status=CAN_BUF_FULL;
-			canRxMessage[1].buffer=4;					
+			canRxMessage[1].buffer=4;
+//            U1TXREG = 0x02;
 		}
-		/* check to see if buffer 3 is full */
-		else if(C1RXFUL1bits.RXFUL5)
+		/* check to see if buffer 5 is full */
+		if(C1RXFUL1bits.RXFUL5)
 		{
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[2].buffer_status=CAN_BUF_FULL;
-			canRxMessage[2].buffer=5;					
+			canRxMessage[2].buffer=5;
+//            U1TXREG = 0x03;
 		}
 		else;
 		/* clear flag */
@@ -172,7 +213,7 @@ void __attribute__((__interrupt__, no_auto_psv)) _T3Interrupt(void)
 void __attribute__((__interrupt__, no_auto_psv)) _T4Interrupt(void)
 {
     /* Interrupt Service Routine code goes here */
-    globalTime +=0.001;
+    globalTime +=0.0001;
 //    LATAbits.LATA8 = ~LATAbits.LATA8;
 //    LATCbits.LATC0 = ~LATCbits.LATC0;
     IFS1bits.T4IF = 0; // Clear Timer3 Interrupt Flag

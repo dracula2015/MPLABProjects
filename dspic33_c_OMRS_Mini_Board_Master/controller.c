@@ -29,6 +29,27 @@ Vector3f *OMRS_controller(Vector3f *qd, Vector3f *dqd, Vector3f *ddqd, Vector3f 
     temp = m_v_multiply(m_inverse(Bavc),m_v_multiply(Mavc,v_minus(ddqd,v_plus(m_v_multiply(Kd,v_minus(dq,dqd)),m_v_multiply(Kp,v_minus(q,qd))))));
     uavc = v_plus(temp,m_v_multiply(m_m_multiply(m_inverse(Bavc),Cavc),dq));
 
+    if(uavc->x < -24)
+    {
+        uavc->x = -24;
+    }else if(uavc->x > 24)
+    {
+        uavc->x = 24;
+    }
+    if(uavc->y < -24)
+    {
+        uavc->y = -24;
+    }else if(uavc->y > 24)
+    {
+        uavc->y = 24;
+    }
+    if(uavc->z < -24)
+    {
+        uavc->z = -24;
+    }else if(uavc->z > 24)
+    {
+        uavc->z = 24;
+    }
 #ifdef printDetail
     printf("uavc: %f,%f,%f\n", uavc->x, uavc->y, uavc->z);
 	printf("Ravc: %f,%f,%f\n%f,%f,%f\n%f,%f,%f\n",

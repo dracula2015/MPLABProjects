@@ -32,6 +32,8 @@
 /******************************************************************************/
 /* i.e. uint16_t <variable_name>; */
 Matrix *Jacobin;
+Matrix *JConst;
+Matrix *JCoeff;
 bool go = 0;
 bool stop = 0;
 bool direction = 0;
@@ -39,6 +41,12 @@ bool direction = 0;
 int count[2]={0,0};
 int motor = 0;
 int i=0;
+float loopTime=0.0;
+Vector3f* q;
+//Vector3f* controlEffect;
+char debugPause = 0;
+float radius = 0.3;
+float speed = PI / 15;
 /******************************************************************************/
 /* Main Program                                                               */
 /******************************************************************************/
@@ -48,18 +56,23 @@ int main(void)
     ConfigureOscillator();
     /* Initialize IO ports and peripherals */
     InitApp();
-    globalTime = 0;
+    loopTime = globalTime;
     /* TODO <INSERT USER APPLICATION CODE HERE> */
     Jacobin = m_constructor(global, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    JCoeff = m_constructor(global, NULL, NULL, 1, 0, 0, 0, 1, 0, 0, 0, 1);
     Kp = m_constructor(global, NULL, NULL, 6, 0, 0, 0, 6, 0, 0, 0, 6);
 	Kd = m_constructor(global, NULL, NULL, 10, 0, 0, 0, 10, 0, 0, 0, 10);
+//    Kp = m_constructor(global, NULL, NULL, 10, 0, 0, 0, 10, 0, 0, 0, 10);
+//	Kd = m_constructor(global, NULL, NULL, 6, 0, 0, 0, 6, 0, 0, 0, 6);
     Vector3f* qd = v_constructor(global, NULL, 0, 0, 0);
 	Vector3f* dqd = v_constructor(global, NULL, 0, 0, 0);
 	Vector3f* ddqd = v_constructor(global, NULL, 0, 0, 0);
-    Vector3f* q = v_constructor(global, NULL, 0, 0, 0);
+//    Vector3f* q = v_constructor(global, NULL, 0, 0, 0);
+    q = v_constructor(global, NULL, 0, 0, 0);
     Vector3f* qPre = v_constructor(global, NULL, 0, 0, 0);
 	Vector3f* dq = v_constructor(global, NULL, 0, 0, 0);
     Vector3f* omega = v_constructor(global, NULL, 0, 0, 0);
+//    controlEffect = v_constructor(global, NULL, 0, 0, 0);
     Vector3f* controlEffect;
 //	Vector3f* ddq;
     P.m = 11.4;
@@ -79,10 +92,13 @@ int main(void)
 	P.beta0 = pow(P.n, 2) * P.I0 / pow(P.r, 2);
 	P.beta1 = pow(P.n, 2) * (P.b0 + P.kt*P.kb / P.Ra) / pow(P.r, 2);
 	P.beta2 = P.n*P.kt / P.r / P.Ra;
-    
+    Matrix* temp = m_constructor(local, NULL, NULL, -0.5, sqrt(3)/2, P.La, -0.5, -sqrt(3)/2, P.La, 1, 0, P.La);
+    JConst = m_constructor(global, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    m_equal(JConst,m_inverse(temp));
+    JCoeff->triMatrix[2][2] = P.r/P.n;
     /* configure and send a message */
     float delta = 0.0;
-    float Jcoefficient=0.0;
+//    float Jcoefficient=0.0;
     canTxMessage[0].message_type=CAN_MSG_DATA;
     //canTxMessage.message_type=CAN_MSG_RTR;
     canTxMessage[0].frame_type=CAN_FRAME_EXT;
@@ -145,14 +161,15 @@ int main(void)
     canTxMessage[4].data[6]=0x00;
     canTxMessage[4].data[7]=0x00;
     canTxMessage[4].data_length=8;
-    U1TXREG = (long)(globalTime*1000);
+    U1TXREG = (long)((globalTime - loopTime)*10000);
     /* send a CAN message */
-    sendECAN(&canTxMessage[3]);
+//    sendECAN(&canTxMessage[3]);
 //    LATAbits.LATA8 = 1;
 //    LATCbits.LATC0 = 1;
+//    globalTime = 0.0;
     while(1)
     {
-        globalTime = 0;
+        loopTime = globalTime;
         if(U1STAbits.PERR==1)
         {
             continue;
@@ -183,9 +200,11 @@ int main(void)
         /* there should be a delay here */
         /* there should be a delay here */
         Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
         /* check to see when a message is received and move the message 
 		into RAM and parse the message */ 
-		if(canRxMessage[0].buffer_status==CAN_BUF_FULL)
+//		if(canRxMessage[0].buffer_status==CAN_BUF_FULL)
+        while(canRxMessage[0].buffer_status!=CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[0]);			
 			/* reset the flag when done */
@@ -198,38 +217,61 @@ int main(void)
 //            U1TXREG = wheelPos[0]>>16;
 //            U1TXREG = wheelPos[0]>>8;
 //            U1TXREG = wheelPos[0];
+//            DELAY_105us
+//            DELAY_105us
+//            DELAY_105us
+//            DELAY_105us
 		}
-		if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
+//		if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
+        if(canRxMessage[1].buffer_status!=CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[1]);			
 			/* reset the flag when done */
 			canRxMessage[1].buffer_status=CAN_BUF_EMPTY;
-            wheelPos[1] = canRxMessage[0].data[0];
+            wheelPos[1] = canRxMessage[1].data[0];
             wheelPos[1] = (wheelPos[1]<<8) + canRxMessage[1].data[1];
             wheelPos[1] = (wheelPos[1]<<8) + canRxMessage[1].data[2];
             wheelPos[1] = (wheelPos[1]<<8) + canRxMessage[1].data[3];
+//            U1TXREG = wheelPos[1]>>24;
+//            U1TXREG = wheelPos[1]>>16;
+//            U1TXREG = wheelPos[1]>>8;
+//            U1TXREG = wheelPos[1];
+//            DELAY_105us
+//            DELAY_105us
+//            DELAY_105us
+//            DELAY_105us
 		}
-        if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
+//        if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
+        while(canRxMessage[2].buffer_status!=CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[2]);			
 			/* reset the flag when done */
 			canRxMessage[2].buffer_status=CAN_BUF_EMPTY;
-            wheelPos[2] = canRxMessage[0].data[0];
+            wheelPos[2] = canRxMessage[2].data[0];
             wheelPos[2] = (wheelPos[2]<<8) + canRxMessage[2].data[1];
             wheelPos[2] = (wheelPos[2]<<8) + canRxMessage[2].data[2];
             wheelPos[2] = (wheelPos[2]<<8) + canRxMessage[2].data[3];
+//            U1TXREG = wheelPos[2]>>24;
+//            U1TXREG = wheelPos[2]>>16;
+//            U1TXREG = wheelPos[2]>>8;
+//            U1TXREG = wheelPos[2];
+//            DELAY_105us
+//            DELAY_105us
+//            DELAY_105us
+//            DELAY_105us
 		};
         delta = globalTime -globalTimePre;
+        if(stop){globalTime = 0.0;}
         globalTimePre = globalTime;
         
-        qd->x = cos(globalTime*PI / 15);
-		qd->y = sin(globalTime*PI / 15);
+        qd->x = radius*cos(globalTime*speed);
+		qd->y = radius*sin(globalTime*speed);
 		qd->z = 0;
-        dqd->x = -PI/15*sin(globalTime*PI / 15);
-		dqd->y = PI/15*cos(globalTime*PI / 15);
+        dqd->x = -radius*speed*sin(globalTime*speed);
+		dqd->y = radius*speed*cos(globalTime*speed);
 		dqd->z = 0;
-        ddqd->x = -pow(PI/15,2)*cos(globalTime*PI / 15);
-		ddqd->y = -pow(PI/15,2)*sin(globalTime*PI / 15);
+        ddqd->x = -radius*pow(speed,2)*cos(globalTime*speed);
+		ddqd->y = -radius*pow(speed,2)*sin(globalTime*speed);
 		ddqd->z = 0;
         
         for(i=0;i<3;i++)
@@ -240,56 +282,139 @@ int main(void)
         omega->x = wheelSpeed[0];
         omega->y = wheelSpeed[1];
         omega->z = wheelSpeed[2];
-        
-        Jcoefficient = P.r/(3*sqrt(3)*P.n*P.La);
-        Jacobin->triMatrix[0][0] = Jcoefficient * ( -2*P.La*sin(q->z + PI/6) - 2*P.La*sin(q->z) );
-        Jacobin->triMatrix[0][1] = Jcoefficient * ( 2*P.La*sin(q->z - PI/3) + 2*P.La*sin(q->z) );
-        Jacobin->triMatrix[0][2] = Jcoefficient * ( 2*P.La*sin(q->z + PI/3) + 2*P.La*sin(PI/3 - q->z) );
-        Jacobin->triMatrix[1][0] = Jcoefficient * ( 2*P.La*sin(PI/6 - q->z) + 2*P.La*cos(q->z) );
-        Jacobin->triMatrix[1][1] = Jcoefficient * ( -2*P.La*sin(q->z + PI/6) - 2*P.La*cos(q->z) );
-        Jacobin->triMatrix[1][2] = Jcoefficient * ( 2*P.La*sin(q->z - PI/6) + 2*P.La*sin(q->z + PI/6) );
-        Jacobin->triMatrix[2][0] = Jcoefficient * ( sqrt(3) );
-        Jacobin->triMatrix[2][1] = Jcoefficient * ( sqrt(3) );
-        Jacobin->triMatrix[2][2] = Jcoefficient * ( sqrt(3) );
-        
+//        q->z = 10.54;
+//        Jcoefficient = P.r/(3*sqrt(3)*P.n*P.La);
+//        Jacobin->triMatrix[0][0] = Jcoefficient * ( -2*P.La*sin(q->z + PI/3) - 2*P.La*sin(q->z) );
+//        Jacobin->triMatrix[0][1] = Jcoefficient * ( 2*P.La*sin(q->z - PI/3) + 2*P.La*sin(q->z) );
+//        Jacobin->triMatrix[0][2] = Jcoefficient * ( 2*P.La*sin(q->z + PI/3) + 2*P.La*sin(PI/3 - q->z) );
+//        Jacobin->triMatrix[1][0] = Jcoefficient * ( 2*P.La*sin(PI/6 - q->z) + 2*P.La*cos(q->z) );
+//        Jacobin->triMatrix[1][1] = Jcoefficient * ( -2*P.La*sin(q->z + PI/6) - 2*P.La*cos(q->z) );
+//        Jacobin->triMatrix[1][2] = Jcoefficient * ( 2*P.La*sin(q->z - PI/6) + 2*P.La*sin(q->z + PI/6) );
+//        Jacobin->triMatrix[2][0] = Jcoefficient * ( sqrt(3) );
+//        Jacobin->triMatrix[2][1] = Jcoefficient * ( sqrt(3) );
+//        Jacobin->triMatrix[2][2] = Jcoefficient * ( sqrt(3) );
+        JCoeff->triMatrix[0][0] = P.r/P.n*cos(q->z);
+        JCoeff->triMatrix[0][1] = -P.r/P.n*sin(q->z);
+        JCoeff->triMatrix[1][0] = P.r/P.n*sin(q->z);
+        JCoeff->triMatrix[1][1] = P.r/P.n*cos(q->z);
+        m_equal(Jacobin,m_m_multiply(JCoeff,JConst));
+//        m_equal(Jacobin,JConst);
+//        m_equal(Jacobin,JCoeff);
+//        if(debugPause)
+        if(0)
+        {
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][0]))>>24;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][0]))>>16;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][0]))>>8;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][0]));
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][1]))>>24;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][1]))>>16;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][1]))>>8;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][1]));
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][2]))>>24;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][2]))>>16;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][2]))>>8;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[0][2]));
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][0]))>>24;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][0]))>>16;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][0]))>>8;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][0]));
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][1]))>>24;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][1]))>>16;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][1]))>>8;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][1]));
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][2]))>>24;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][2]))>>16;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][2]))>>8;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[1][2]));
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][0]))>>24;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][0]))>>16;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][0]))>>8;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][0]));
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][1]))>>24;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][1]))>>16;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][1]))>>8;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][1]));
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][2]))>>24;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][2]))>>16;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][2]))>>8;
+            U1TXREG =  ((long)(10000000*Jacobin->triMatrix[2][2]));
+//            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+            DELAY_105us
+        }
+        debugPause = 0;
         v_equal(dq,m_v_multiply(Jacobin,omega));
         
         q->x = qPre->x + dq->x * delta;
-        q->x = qPre->x + dq->x * delta;
-        q->x = qPre->x + dq->x * delta;
+        q->y = qPre->y + dq->y * delta;
+        q->z = qPre->z + dq->z * delta;
         
         qPre->x = q->x;
         qPre->y = q->y;
-        qPre->y = q->z;
+        qPre->z = q->z;
         
         controlEffect = OMRS_controller(qd, dqd, ddqd, q, dq);
         
         if(stop){
-        canTxMessage[0].data[4] = 0;
-        canTxMessage[1].data[4] = 0;
-        canTxMessage[2].data[4] = 0;
+            canTxMessage[0].data[4] = 0;
+            canTxMessage[1].data[4] = 0;
+            canTxMessage[2].data[4] = 0;
         }
         
         if(go){
-        canTxMessage[0].data[4] = 1;
-        canTxMessage[1].data[4] = 1;
-        canTxMessage[2].data[4] = 1;
+            canTxMessage[0].data[4] = 1;
+            canTxMessage[1].data[4] = 1;
+            canTxMessage[2].data[4] = 1;
         }
         
-        canTxMessage[0].data[0] =  ((long)(1000*controlEffect->x))>>24;
-        canTxMessage[0].data[1] =  ((long)(1000*controlEffect->x))>>16;
-        canTxMessage[0].data[2] =  ((long)(1000*controlEffect->x))>>8;
-        canTxMessage[0].data[3] =  ((long)(1000*controlEffect->x));
+        canTxMessage[0].data[0] =  ((long)(100*controlEffect->x))>>24;
+        canTxMessage[0].data[1] =  ((long)(100*controlEffect->x))>>16;
+        canTxMessage[0].data[2] =  ((long)(100*controlEffect->x))>>8;
+        canTxMessage[0].data[3] =  ((long)(100*controlEffect->x));
         
-        canTxMessage[1].data[0] =  ((long)(1000*controlEffect->y))>>24;
-        canTxMessage[1].data[1] =  ((long)(1000*controlEffect->y))>>16;
-        canTxMessage[1].data[2] =  ((long)(1000*controlEffect->y))>>8;
-        canTxMessage[1].data[3] =  ((long)(1000*controlEffect->y));
+        canTxMessage[1].data[0] =  ((long)(100*controlEffect->y))>>24;
+        canTxMessage[1].data[1] =  ((long)(100*controlEffect->y))>>16;
+        canTxMessage[1].data[2] =  ((long)(100*controlEffect->y))>>8;
+        canTxMessage[1].data[3] =  ((long)(100*controlEffect->y));
         
-        canTxMessage[2].data[0] =  ((long)(1000*controlEffect->z))>>24;
-        canTxMessage[2].data[1] =  ((long)(1000*controlEffect->z))>>16;
-        canTxMessage[2].data[2] =  ((long)(1000*controlEffect->z))>>8;
-        canTxMessage[2].data[3] =  ((long)(1000*controlEffect->z));
+        canTxMessage[2].data[0] =  ((long)(100*controlEffect->z))>>24;
+        canTxMessage[2].data[1] =  ((long)(100*controlEffect->z))>>16;
+        canTxMessage[2].data[2] =  ((long)(100*controlEffect->z))>>8;
+        canTxMessage[2].data[3] =  ((long)(100*controlEffect->z));
         
         sendECAN(&canTxMessage[0]);
         sendECAN(&canTxMessage[1]);
@@ -301,7 +426,37 @@ int main(void)
         
         /* release dynamically allocated local memory */
         freeLocalMem();
-        U1TXREG = (long)(globalTime*1000);
+//        U1TXREG = 0x55;
+//        DELAY_105us
+//        DELAY_105us
+////        U1TXREG = (long)((delta)*10000)>>8;
+////        U1TXREG = (long)((delta)*10000);
+//        U1TXREG =  wheelPos[0]>>24;
+//        U1TXREG =  wheelPos[0]>>16;
+//        U1TXREG =  wheelPos[0]>>8;
+//        U1TXREG =  wheelPos[0];
+//        DELAY_105us
+//        DELAY_105us
+//        DELAY_105us
+//        DELAY_105us
+//        U1TXREG =  wheelPos[1]>>24;
+//        U1TXREG =  wheelPos[1]>>16;
+//        U1TXREG =  wheelPos[1]>>8;
+//        U1TXREG =  wheelPos[1];
+//        DELAY_105us
+//        DELAY_105us
+//        DELAY_105us
+//        DELAY_105us
+//        U1TXREG =  wheelPos[2]>>24;
+//        U1TXREG =  wheelPos[2]>>16;
+//        U1TXREG =  wheelPos[2]>>8;
+//        U1TXREG =  wheelPos[2];
+//        DELAY_105us
+//        DELAY_105us
+//        DELAY_105us
+//        DELAY_105us
+        U1TXREG = (long)((globalTime - loopTime)*10000);      
+        U1TXREG = (long)((globalTime - loopTime)*10000)>>8;   
     };
     /* release dynamically allocated global memory */
     freeGlobalMem();

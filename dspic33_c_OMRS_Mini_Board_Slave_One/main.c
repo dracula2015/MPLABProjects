@@ -35,6 +35,7 @@
 bool go = 0;
 bool stop = 1;
 bool direction = 0;
+long controlEffect = 0;
 int motor = 0;
 
 /******************************************************************************/
@@ -99,8 +100,21 @@ int main(void)
 			rxECAN(&canRxMessage[0]);			
 			/* reset the flag when done */
 			canRxMessage[0].buffer_status=CAN_BUF_EMPTY;
-            motor = canRxMessage[0].data[2];
-            motor = (motor<<8) + canRxMessage[0].data[3];
+            controlEffect = canRxMessage[0].data[0];
+            controlEffect = (controlEffect<<8) + canRxMessage[0].data[1];
+            controlEffect = (controlEffect<<8) + canRxMessage[0].data[2];
+            controlEffect = (controlEffect<<8) + canRxMessage[0].data[3];
+            
+            if(controlEffect>=0)
+            {
+                motor = controlEffect;
+                direction = 1;
+            }else if(controlEffect<0)
+            {
+                motor = ~controlEffect + 1;
+                direction = 0;
+            }else;
+                        
             if(canRxMessage[0].data[4])
             {
                 go = true;
@@ -111,29 +125,18 @@ int main(void)
                 stop = true;
             }
 		}
-		else if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
+		if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[1]);			
 			/* reset the flag when done */
 			canRxMessage[1].buffer_status=CAN_BUF_EMPTY;
 		}
-        else if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
+        if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
 		{
 			rxECAN(&canRxMessage[2]);			
 			/* reset the flag when done */
 			canRxMessage[2].buffer_status=CAN_BUF_EMPTY;
 		};
-        
-        {
-            int temp=0;
-            temp = motor & 0x8000;
-            if(temp)
-            {
-                motor=motor & 0x7fff ;
-                //motor[j]=~(motor[j]-1);
-                direction=0;
-            }else{direction=1;}
-        }
         
         if(stop){
         LATAbits.LATA7=1;

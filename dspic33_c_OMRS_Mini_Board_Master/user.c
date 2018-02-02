@@ -181,7 +181,7 @@ void UartInit(void)
     U1MODEbits.ABAUD = 0; // Auto-Baud Disabled
     U1MODEbits.BRGH = 0; // Low Speed mode
     U1MODEbits.LPBACK = 0;
-    U1BRG = BRGVAL; // BAUD Rate Setting for 57600
+    U1BRG = BRGVAL; // BAUD Rate Setting for 115200//57600
     U1STAbits.UTXISEL0 = 0; // Interrupt after one Tx character is transmitted
     U1STAbits.UTXISEL1 = 0;
     U1STAbits.URXISEL = 0;
@@ -234,7 +234,8 @@ void TimerInit(void)
     T4CONbits.TGATE = 0; // Disable Gated Timer mode
     T4CONbits.TCKPS = 0b00; // Select 1:1 Prescaler
     TMR4 = 0x0000; // Clear timer register
-    PR4 = 0x9C40; // Load the period value,40000*0.025us=1ms
+//    PR4 = 0x9C40; // Load the period value,40000*0.025us=1ms
+    PR4 = 0xFA0; // Load the period value,4000*0.025us=0.1ms
     IPC6bits.T4IP = 0x01; // Set Timer4 Interrupt Priority Level
     IFS1bits.T4IF = 0; // Clear Timer4 Interrupt Flag
     IEC1bits.T4IE = 1; // Enable Timer4 interrupt

@@ -362,8 +362,10 @@ void ECANInit (void)
 	C1CFG1bits.SJW = 0x3;
     /* Baud Rate Prescaler bits set to 1:1, i.e., TQ = (2*1*1)/ FCAN */
 	C1CFG1bits.BRP = BRP_VAL;
-	/* 4 CAN Messages to be buffered in DMA RAM */	
-	C1FCTRLbits.DMABS=0b10;
+//	/* 8 CAN Messages to be buffered in DMA RAM */	
+//	C1FCTRLbits.DMABS=0b10;
+    /* 32 CAN Messages to be buffered in DMA RAM */	
+	C1FCTRLbits.DMABS=0b110;
 	
 	/* Filter configuration */
 	/* Enable window to access the filter configuration registers */

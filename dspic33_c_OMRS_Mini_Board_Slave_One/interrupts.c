@@ -115,29 +115,28 @@ void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)
 			canRxMessage[0].buffer=1;	
 		}		
 		/* check to see if buffer 2 is full */
-		else if(C1RXFUL1bits.RXFUL2)
+		if(C1RXFUL1bits.RXFUL2)
 		{
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[1].buffer_status=CAN_BUF_FULL;
 			canRxMessage[1].buffer=2;					
 		}
 		/* check to see if buffer 3 is full */
-		else if(C1RXFUL1bits.RXFUL3)
+		if(C1RXFUL1bits.RXFUL3)
 		{
 			/* set the buffer full flag and the buffer received flag */
 			canRxMessage[2].buffer_status=CAN_BUF_FULL;
 			canRxMessage[2].buffer=3;					
 		}
-		else;
+//		else;
 		/* clear flag */
 		C1INTFbits.RBIF = 0;
 	}
-	else if(C1INTFbits.TBIF)
+	if(C1INTFbits.TBIF)
     {
 	    /* clear flag */
 		C1INTFbits.TBIF = 0;	    
 	}
-	else;
 	
 	/* clear interrupt flag */
 	IFS2bits.C1IF=0;
