@@ -89,11 +89,8 @@ extern bool direction;
 extern int count[2];
 extern int motor;
 extern int i;
-extern Vector3f* q;
-extern char debugPause;
 extern float radius;
 extern float speed;
-//extern Vector3f* controlEffect;
 /* TODO Add interrupt routine code here. */
 void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
 {
@@ -103,10 +100,7 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
     else if(ReceivedChar == 's'){stop = 1; go = 0;}
     else if(ReceivedChar == 'u')
     { 
-        U1TXREG = 'u'; i = 0;debugPause = 1;
-//        controlEffect->x = -controlEffect->x;
-//        controlEffect->y = -controlEffect->y;
-//        controlEffect->z = -controlEffect->z;
+        U1TXREG = 'u'; i = 0;
     }
     else
     {
@@ -114,34 +108,7 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
         i++;
         if(i>=2) i = 0;
         radius = ReceivedChar / 100;
-//        controlEffect->x = ReceivedChar;
-//        controlEffect->y = ReceivedChar;
-//        controlEffect->z = ReceivedChar;
     }
-    
-    DELAY_105us
-    DELAY_105us
-    U1TXREG =  ((long)(1000*q->x))>>24;
-    U1TXREG =  ((long)(1000*q->x))>>16;
-    U1TXREG =  ((long)(1000*q->x))>>8;
-    U1TXREG =  ((long)(1000*q->x));
-    DELAY_105us
-    DELAY_105us
-    DELAY_105us
-    U1TXREG =  ((long)(1000*q->y))>>24;
-    U1TXREG =  ((long)(1000*q->y))>>16;
-    U1TXREG =  ((long)(1000*q->y))>>8;
-    U1TXREG =  ((long)(1000*q->y));
-    DELAY_105us
-    DELAY_105us
-    DELAY_105us
-    U1TXREG =  ((long)(1000*q->z))>>24;
-    U1TXREG =  ((long)(1000*q->z))>>16;
-    U1TXREG =  ((long)(1000*q->z))>>8;
-    U1TXREG =  ((long)(1000*q->z));
-    DELAY_105us
-    DELAY_105us
-    DELAY_105us
 //    sendECAN(&canTxMessage[3]);
     IFS0bits.U1RXIF = 0;
 }
