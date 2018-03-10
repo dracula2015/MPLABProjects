@@ -124,6 +124,14 @@ int main(void)
                 go = false;
                 stop = true;
             }
+            
+            if(canRxMessage[0].data[5])
+            {
+                QEIPos = 0;
+                QEIPosHigh = 0;
+                POS1CNT = 0;
+            }
+            
 		}
 		if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
 		{

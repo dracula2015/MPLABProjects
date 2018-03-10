@@ -14,7 +14,7 @@ Vector3f *OMRS_model(Vector3f *u, Vector3f *q, Vector3f *dq)
 #endif // printTimeConsumption
 
 	Vector3f *ddq;
-	Matrix *Ravc = m_constructor(local, NULL, NULL, cos(q->z), -sin(q->z), 0, sin(q->z), cos(q->z), 0, 0, 0, 1);
+	//Matrix *Ravc = m_constructor(local, NULL, NULL, cos(q->z), -sin(q->z), 0, sin(q->z), cos(q->z), 0, 0, 0, 1);
 	Matrix *DRavc = m_constructor(local, NULL, NULL, -sin(q->z)*dq->z, -cos(q->z)*dq->z, 0, cos(q->z)*dq->z, -sin(q->z)*dq->z, 0, 0, 0, 0);
 	Matrix *M2avc = m_constructor(local, NULL, NULL, 1.5*P.beta0 + P.m, 0, 0, 0, 1.5*P.beta0 + P.m, 0, 0, 0, 3 * P.beta0*pow(P.La, 2) + P.Iv);
 	Matrix *C2avc = m_constructor(local, NULL, NULL, 1.5*P.beta1, -P.m*dq->z, 0, P.m*dq->z, 1.5*P.beta1, 0, 0, 0, 3 * P.beta1*pow(P.La, 2));

@@ -27,7 +27,6 @@
 #include "user.h"          /* User funct/params, such as InitApp              */
 #include <math.h>
 
-#define PI 3.1415926
 /******************************************************************************/
 /* Global Variable Declaration                                                */
 /******************************************************************************/
@@ -35,17 +34,14 @@
 Matrix *Jacobin;
 Matrix *JConst;
 Matrix *JCoeff;
-bool go = 0;
-bool stop = 0;
-bool direction = 0;
 
-int count[2]={0,0};
-int motor = 0;
-int i=0;
-float loopTime=0.0;
-float radius = 0.3;
-float speed = PI / 15;
+bool reset = false;
 float rectLength = 1.0;
+float loopTime = 0.0;
+bool debounce = false;
+bool debounceEdge = NULL;
+float debounceTime = 0.0;
+float eliminateJitter = 0.0;
 /******************************************************************************/
 /* Main Program                                                               */
 /******************************************************************************/
@@ -69,6 +65,11 @@ int main(void)
     Vector3f* qPre = v_constructor(global, NULL, 0, 0, 0);
 	Vector3f* dq = v_constructor(global, NULL, 0, 0, 0);
     Vector3f* omega = v_constructor(global, NULL, 0, 0, 0);
+    Vector3f* joystick = v_constructor(global, NULL, 0, 0, 0);
+    Vector3f* joystickError = v_constructor(global, NULL, 0, 0, 0);
+    Vector3f* joystickIntegral = v_constructor(global, NULL, 0, 0, 0);
+    Vector3f* joystickIntegralPre = v_constructor(global, NULL, 0, 0, 0);
+    Vector3f* joystickControl = v_constructor(global, NULL, 0, 0, 0);
     Vector3f* controlEffect;
 //	Vector3f* ddq;
     P.m = 11.4;
@@ -88,12 +89,16 @@ int main(void)
 	P.beta0 = pow(P.n, 2) * P.I0 / pow(P.r, 2);
 	P.beta1 = pow(P.n, 2) * (P.b0 + P.kt*P.kb / P.Ra) / pow(P.r, 2);
 	P.beta2 = P.n*P.kt / P.r / P.Ra;
-    Matrix* temp = m_constructor(local, NULL, NULL, -0.5, sqrt(3)/2, P.La, -0.5, -sqrt(3)/2, P.La, 1, 0, P.La);
+    Matrix* JBackMatrix = m_constructor(local, NULL, NULL, -0.5, sqrt(3)/2, P.La, -0.5, -sqrt(3)/2, P.La, 1, 0, P.La);
     JConst = m_constructor(global, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    m_equal(JConst,m_inverse(temp));
+    m_equal(JConst,m_inverse(JBackMatrix));
     JCoeff->triMatrix[2][2] = P.r/P.n;
 
-    float delta = 0.0;
+    float eliminateJitter = 0.0;
+    float joystickGainKP = 10;
+    float joystickGainKI = 1;
+    int wheeli = 0;
+    radioSignal[4] = 0x01E0;
 //    float Jcoefficient=0.0;
     canTxMessage[0].message_type=CAN_MSG_DATA;
     //canTxMessage.message_type=CAN_MSG_RTR;
@@ -106,7 +111,10 @@ int main(void)
     canTxMessage[0].data[2]=0x00;
     canTxMessage[0].data[3]=0x00;
     canTxMessage[0].data[4]=0x00;
-    canTxMessage[0].data_length=5;
+    canTxMessage[0].data[5]=0x00;
+    canTxMessage[0].data[6]=0x00;
+    canTxMessage[0].data[7]=0x00;
+    canTxMessage[0].data_length=8;
     
     canTxMessage[1].message_type=CAN_MSG_DATA;
     //canTxMessage.message_type=CAN_MSG_RTR;
@@ -119,7 +127,10 @@ int main(void)
     canTxMessage[1].data[2]=0x00;
     canTxMessage[1].data[3]=0x00;
     canTxMessage[1].data[4]=0x00;
-    canTxMessage[1].data_length=5;
+    canTxMessage[1].data[5]=0x00;
+    canTxMessage[1].data[6]=0x00;
+    canTxMessage[1].data[7]=0x00;
+    canTxMessage[1].data_length=8;
     
     canTxMessage[2].message_type=CAN_MSG_DATA;
     //canTxMessage.message_type=CAN_MSG_RTR;
@@ -132,7 +143,10 @@ int main(void)
     canTxMessage[2].data[2]=0x00;
     canTxMessage[2].data[3]=0x00;
     canTxMessage[2].data[4]=0x00;
-    canTxMessage[2].data_length=5;
+    canTxMessage[2].data[5]=0x00;
+    canTxMessage[2].data[6]=0x00;
+    canTxMessage[2].data[7]=0x00;
+    canTxMessage[2].data_length=8;
             
     canTxMessage[3].message_type=CAN_MSG_RTR;
     //canTxMessage.message_type=CAN_MSG_DATA;
@@ -159,6 +173,7 @@ int main(void)
     canTxMessage[4].data_length=8;
 //    LATAbits.LATA8 = 1;
 //    LATCbits.LATC0 = 1;
+//    LATCbits.LATC5 = 1;
     while(1)
     {
         loopTime = globalTime;
@@ -177,26 +192,18 @@ int main(void)
         {   
             //LATAbits.LATA1=1;
         }
-          
-        if(i==0)
-        {            
-            motor = count[0];
-            motor = motor & 0x00FF;
-            motor = motor | (count[1]<<8);
-        }
-        
+
         //QEIPos = (QEIPosHigh << 16) + POS1CNT; 
 
         sendECAN(&canTxMessage[3]);
         /* there should be a delay here */
         /* there should be a delay here */
         /* there should be a delay here */
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
+
         /* check to see when a message is received and move the message 
 		into RAM and parse the message */ 
-//		if(canRxMessage[0].buffer_status==CAN_BUF_FULL)
-        while(canRxMessage[0].buffer_status!=CAN_BUF_FULL)
+		if(canRxMessage[0].buffer_status==CAN_BUF_FULL)
+//        while(canRxMessage[0].buffer_status!=CAN_BUF_FULL);
 		{
 			rxECAN(&canRxMessage[0]);			
 			/* reset the flag when done */
@@ -206,8 +213,8 @@ int main(void)
             wheelPos[0] = (wheelPos[0]<<8) + canRxMessage[0].data[2];
             wheelPos[0] = (wheelPos[0]<<8) + canRxMessage[0].data[3];
 		}
-//		if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
-        if(canRxMessage[1].buffer_status!=CAN_BUF_FULL)
+		if(canRxMessage[1].buffer_status==CAN_BUF_FULL)
+//        while(canRxMessage[1].buffer_status!=CAN_BUF_FULL);
 		{
 			rxECAN(&canRxMessage[1]);			
 			/* reset the flag when done */
@@ -217,8 +224,8 @@ int main(void)
             wheelPos[1] = (wheelPos[1]<<8) + canRxMessage[1].data[2];
             wheelPos[1] = (wheelPos[1]<<8) + canRxMessage[1].data[3];
 		}
-//        if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
-        while(canRxMessage[2].buffer_status!=CAN_BUF_FULL)
+        if(canRxMessage[2].buffer_status==CAN_BUF_FULL)
+//        while(canRxMessage[2].buffer_status!=CAN_BUF_FULL);
 		{
 			rxECAN(&canRxMessage[2]);			
 			/* reset the flag when done */
@@ -229,7 +236,32 @@ int main(void)
             wheelPos[2] = (wheelPos[2]<<8) + canRxMessage[2].data[3];
 		};
         delta = globalTime -globalTimePre;
-        if(stop){globalTime = 0.0;}
+        if(stop){globalTime = 0.0;}       
+        if(reset)
+        {
+            canTxMessage[0].data[5] = 1;
+            canTxMessage[1].data[5] = 1;
+            canTxMessage[2].data[5] = 1;
+            
+            q->x = 0;
+            qPre->x = 0;
+            q->y = 0;
+            qPre->y = 0;
+            q->z = 0;
+            qPre->z = 0;
+            for(wheeli=0;wheeli<3;wheeli++)
+            {
+                wheelPos[wheeli] = 0;
+                wheelPosPre[wheeli] = 0;
+            }
+            globalTime = 0.0;
+            reset = false;
+        }else
+        {
+            canTxMessage[0].data[5] = 0;
+            canTxMessage[1].data[5] = 0;
+            canTxMessage[2].data[5] = 0;
+        }
         globalTimePre = globalTime;
         
         qd->x = radius*cos(globalTime*speed);
@@ -273,10 +305,10 @@ int main(void)
 //        v_equal(ddqd,v_s_multiply(v_minus(dqd,dqdPre),1/delta));
 //        v_equal(dqdPre,dqd);
         
-        for(i=0;i<3;i++)
+        for(wheeli=0;wheeli<3;wheeli++)
         {
-            wheelSpeed[i] = 2*PI*(wheelPos[i] - wheelPosPre[i])/2048/delta;
-            wheelPosPre[i] = wheelPos[i];
+            wheelSpeed[wheeli] = 2*PI*(wheelPos[wheeli] - wheelPosPre[wheeli])/2048/delta;
+            wheelPosPre[wheeli] = wheelPos[wheeli];
         }
         omega->x = wheelSpeed[0];
         omega->y = wheelSpeed[1];
@@ -310,6 +342,18 @@ int main(void)
         
         controlEffect = OMRS_controller(qd, dqd, ddqd, q, dq);
         
+        Debounce();
+        
+        if(radioChannel[8]==0x06A0)
+        {
+            go = 0;
+            stop = 1;
+        }else if(radioChannel[8]==0x0160)
+        {
+            go = 1;
+            stop = 0;
+        }else;
+        
         if(stop){
             canTxMessage[0].data[4] = 0;
             canTxMessage[1].data[4] = 0;
@@ -321,6 +365,52 @@ int main(void)
             canTxMessage[1].data[4] = 1;
             canTxMessage[2].data[4] = 1;
         }
+        
+        if(radioChannel[4]==0x0620)
+        {
+            controlEffect->x = motor[0];
+            controlEffect->y = motor[1];
+            controlEffect->z = motor[2];            
+        }else if(radioChannel[4]==0x0400)
+        {
+            if(radioChannel[0]>0x0180){
+                joystick->x = (radioChannel[0] - 0x0180)/1000.0;
+            }else
+            {
+                joystick->x = 0.0;
+            }
+            if(radioChannel[1]>0x0175){
+                joystick->y = (radioChannel[1] - 0x0175)/1000.0;
+            }else
+            {
+                joystick->y = 0.0;
+            }
+            if(radioChannel[3]>0x0150){
+                joystick->z = (radioChannel[3] - 0x0150)/1000.0;
+            }else
+            {
+                joystick->z = 0.0;
+            }
+            
+            if(radioChannel[5]>0x0160){
+                joystickGainKI = (radioChannel[5] - 0x0160)/10000.0;
+            }else
+            {
+                joystickGainKI = 0.0;
+            }
+            if(radioChannel[6]>0x0160){
+                joystickGainKP = (radioChannel[6] - 0x0160)/100.0;
+            }else
+            {
+                joystickGainKP = 0.0;
+            }
+            
+            v_equal(joystickError,v_minus(omega,v_s_multiply(m_v_multiply(JBackMatrix,joystick),P.n/P.r)));
+            v_equal(joystickIntegral,v_plus(joystickIntegralPre,v_s_multiply(joystickError,delta)));
+            v_equal(joystickIntegralPre,joystickIntegral);
+            v_equal(joystickControl,v_plus(v_s_multiply(joystickError,joystickGainKP),v_s_multiply(joystickIntegral,joystickGainKI)));
+            v_equal(controlEffect,joystickControl);
+        }else;
         
         canTxMessage[0].data[0] =  ((long)(100*controlEffect->x))>>24;
         canTxMessage[0].data[1] =  ((long)(100*controlEffect->x))>>16;
@@ -344,15 +434,54 @@ int main(void)
         /* there should be a delay here */
         /* there should be a delay here */
         /* there should be a delay here */
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
         
         /* release dynamically allocated local memory */
         freeLocalMem();
-
-        U1TXREG = (long)((globalTime - loopTime)*10000);      
-        U1TXREG = (long)((globalTime - loopTime)*10000)>>8;   
+//        U1TXREG = 'u';
+//        U1TXREG = (long)((globalTime - loopTime)*10000)>>8;  
+//        U1TXREG = (long)((globalTime - loopTime)*10000);      
     };
     /* release dynamically allocated global memory */
     freeGlobalMem();
     
     return 0;
+}
+
+void Debounce(void)
+{
+    if(debounce==false)
+    {
+        if(radioChannel[7]==0x06A0)
+        {
+            debounce = true;
+            debounceEdge = true;
+            LATCbits.LATC1 = 1;
+        }
+    }
+    if(debounce==true)
+    {
+        if(radioChannel[7]==0x0160)
+        {
+            debounce = false;
+            debounceEdge = false;
+            debounceTime = eliminateJitter;
+            eliminateJitter = 0.0;
+            if(debounceTime>0.1)
+            {
+//                U1TXREG = ((long)(debounceTime*10000))>>8;
+//                U1TXREG = (debounceTime*10000);
+//                go = !go;
+//                stop = !stop;
+                reset = true;
+                debounceTime = 0;
+            }
+            LATCbits.LATC1 = 0;
+        }
+    }
+    if(debounceEdge==true)
+    {
+        eliminateJitter = eliminateJitter + delta;
+    }
 }

@@ -501,7 +501,12 @@ void ECANInit (void)
 	/* configure the device to interrupt on the receive buffer full flag */
 	/* clear the buffer full flags */
 	C1INTFbits.RBIF=0;
-    
+    /*ECAN1 Interrupt Priority*/
+//    IPC8bits.C1IP = 0b101;
+    /*ECAN1 Receive Interrupt Priority*/
+//    IPC8bits.C1RXIP = 0b101;
+    /*ECAN1 Transmit Interrupt Priority*/
+//    IPC17bits.C1TXIP = 0b101;
     /* Enable ECAN1 Interrupt */     	
 	IEC2bits.C1IE=1;	
 	/* enable Transmit interrupt */

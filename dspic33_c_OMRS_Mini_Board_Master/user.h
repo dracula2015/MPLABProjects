@@ -18,6 +18,7 @@
 #include "delay.h"
 #include "ecan.h"
 
+#define PI 3.1415926
 /* TODO Application specific user parameters used in user.c may go here */
 typedef struct Parameter
 {
@@ -38,10 +39,23 @@ typedef struct Parameter
 	float beta2;
 }Parameter;
 
+extern bool go;
+extern bool stop;
+extern bool direction;
+
+extern int count[6];
+extern int motor[3];
+extern int hostCommandCount;
+extern float radius;
+extern float speed;
+
 extern float globalTime;
 extern float globalTimePre;
-extern char ReceivedChar;
-extern char TransmitChar;
+extern float delta;
+extern unsigned char ReceivedChar, ReceivedChar1;
+extern unsigned char TransmitChar, TransmitChar1;
+extern unsigned int radioSignal[25];
+extern unsigned int radioChannel[16];
 extern long QEIPos;
 extern long QEIPosHigh;
 extern long wheelPos[3];
@@ -71,7 +85,8 @@ Vector3f *OMRS_model(Vector3f *u, Vector3f *q, Vector3f *dq);
 void InitApp(void);         /* I/O and Peripheral Initialization */
 void UartInit(void);
 void QEInit(void);
-void PwmInit(void);
+void PwmInit(void); 
 void TimerInit(void);
-
+void sbus_decode(unsigned int *radioSignal,unsigned int *radioChannel);
+void Debounce(void);
 #endif

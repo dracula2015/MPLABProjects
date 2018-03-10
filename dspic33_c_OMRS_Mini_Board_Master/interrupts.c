@@ -16,6 +16,7 @@
 #include <stdint.h>        /* Includes uint16_t definition   */
 #include <stdbool.h>       /* Includes true/false definition */
 #include "user.h"
+
 /******************************************************************************/
 /* Interrupt Vector Options                                                   */
 /******************************************************************************/
@@ -81,33 +82,89 @@
 /******************************************************************************/
 /* Interrupt Routines                                                         */
 /******************************************************************************/
-
-extern bool go;
-extern bool stop;
-extern bool direction;
-
-extern int count[2];
-extern int motor;
-extern int i;
-extern float radius;
-extern float speed;
+bool go = 0;
+bool stop = 1;
+bool direction = 0;
+float radioInterval = 0.0;
+unsigned int signalCount = 0;
+//unsigned int channelCount = 0;
+unsigned int radioSignal[25] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+unsigned int radioChannel[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int count[6]={0,0,0,0,0,0};
+int motor[3] = {0,0,0};
+int hostCommandCount=0;
+float radius = 1;//0.3;
+float speed = PI / 15;
 /* TODO Add interrupt routine code here. */
 void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
 {
     ReceivedChar = U1RXREG;
     U1TXREG = ReceivedChar;
-    if(ReceivedChar == 'g'){go = 1;}
+    if(ReceivedChar == 'g'){go = 1; stop=0;}
     else if(ReceivedChar == 's'){stop = 1; go = 0;}
     else if(ReceivedChar == 'u')
     { 
-        U1TXREG = 'u'; i = 0;
+        U1TXREG = 'u'; 
+        hostCommandCount = 0;
+//        int count = 0;
+//        for(count = 0; count<25; count++)
+//        {
+//            Delay_Us(Delay200uS_count);
+//            U1TXREG = radioSignal[count];
+//        }
+//        for(count = 0; count<16; count++)
+//        {
+//            Delay_Us(Delay200uS_count);
+//            Delay_Us(Delay200uS_count);
+//            U1TXREG = radioChannel[count]>>8;
+//            U1TXREG = radioChannel[count];
+//        }
+//        U1TXREG = signalCount;
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
+        U1TXREG = wheelPos[0]>>24;
+        U1TXREG = wheelPos[0]>>16;
+        U1TXREG = wheelPos[0]>>8;
+        U1TXREG = wheelPos[0];
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
+        U1TXREG = wheelPos[1]>>24;
+        U1TXREG = wheelPos[1]>>16;
+        U1TXREG = wheelPos[1]>>8;
+        U1TXREG = wheelPos[1];
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
+        Delay_Us(Delay200uS_count);
+        U1TXREG = wheelPos[2]>>24;
+        U1TXREG = wheelPos[2]>>16;
+        U1TXREG = wheelPos[2]>>8;
+        U1TXREG = wheelPos[2];
     }
     else
     {
-        count[i] = ReceivedChar;
-        i++;
-        if(i>=2) i = 0;
-        radius = ReceivedChar / 100;
+        count[hostCommandCount] = ReceivedChar;
+        hostCommandCount++;
+        if(hostCommandCount>=6) 
+        {
+            hostCommandCount = 0;
+            motor[0] = count[0];
+            motor[0] = motor[0] & 0x00FF;
+            motor[0] = motor[0] | (count[1]<<8);
+
+            motor[1] = count[2];
+            motor[1] = motor[1] & 0x00FF;
+            motor[1] = motor[1] | (count[3]<<8);
+
+            motor[2] = count[4];
+            motor[2] = motor[2] & 0x00FF;
+            motor[2] = motor[2] | (count[5]<<8);
+        }
+        //radius = ReceivedChar / 100;
     }
 //    sendECAN(&canTxMessage[3]);
     IFS0bits.U1RXIF = 0;
@@ -116,6 +173,33 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
 void __attribute__((interrupt, auto_psv)) _U1TXInterrupt(void)
 {
     IFS0bits.U1TXIF = 0; // clear TX interrupt flag
+}
+
+void __attribute__((__interrupt__, auto_psv)) _U2RXInterrupt(void)
+{
+    ReceivedChar1 = U2RXREG;
+//    U1TXREG = ReceivedChar1;
+    if(radioInterval>0.01)
+    {    
+        signalCount = 0;
+    }
+    radioSignal[signalCount] = ReceivedChar1;
+    signalCount += 1;
+    if(signalCount == 25)
+    {
+        if(radioSignal[0] == 0x0f)
+        {
+            sbus_decode(radioSignal,radioChannel);
+        }
+        signalCount = 0;
+    }
+    radioInterval = 0.0;
+    IFS1bits.U2RXIF = 0;
+}
+
+void __attribute__((interrupt, auto_psv)) _U2TXInterrupt(void)
+{
+    IFS1bits.U2TXIF = 0; // clear TX interrupt flag
 }
 
 void __attribute__((interrupt, auto_psv)) _QEI1Interrupt(void)
@@ -157,14 +241,16 @@ void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)
 		else;
 		/* clear flag */
 		C1INTFbits.RBIF = 0;
+//        U1TXREG = 0x04;
 	}
 	else if(C1INTFbits.TBIF)
     {
 	    /* clear flag */
-		C1INTFbits.TBIF = 0;	    
+		C1INTFbits.TBIF = 0;
+//        U1TXREG = 0x05;	    
 	}
 	else;
-	
+//	U1TXREG = 0x06;
 	/* clear interrupt flag */
 	IFS2bits.C1IF=0;
 }
@@ -181,7 +267,34 @@ void __attribute__((__interrupt__, no_auto_psv)) _T4Interrupt(void)
 {
     /* Interrupt Service Routine code goes here */
     globalTime +=0.0001;
+    radioInterval += 0.0001;
 //    LATAbits.LATA8 = ~LATAbits.LATA8;
 //    LATCbits.LATC0 = ~LATCbits.LATC0;
     IFS1bits.T4IF = 0; // Clear Timer3 Interrupt Flag
+}
+
+void sbus_decode(unsigned int *radioSignal,unsigned int *radioChannel)
+{
+    int channel = 15;
+    unsigned int signal = 22;
+    unsigned int shift = 3;
+    for(channel=15;channel>=0;channel--)
+    {
+        if(shift<=8)
+        {
+            radioChannel[channel] = (radioSignal[signal]<<shift) + (radioSignal[signal-1]>>(8-shift));
+            signal--;
+            if(shift == 8)
+            {
+                signal--;
+            };
+        }else
+        {
+            radioChannel[channel] = (radioSignal[signal]<<shift) + (radioSignal[signal-1]<<(shift-8)) + (radioSignal[signal-2]>>(16-shift));
+            signal -= 2;
+        }        
+        radioChannel[channel] = radioChannel[channel] & 0x7ff;
+        shift += 3;
+        if(shift>=11){shift=shift-8;}
+    }
 }

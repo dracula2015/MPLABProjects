@@ -127,7 +127,7 @@ int main(void)
                 direction = 0;
             }else;
                         
-            if(canRxMessage[1].data[4])
+            if(canRxMessage[2].data[4])
             {
                 go = true;
                 stop = false;
@@ -135,6 +135,13 @@ int main(void)
             {
                 go = false;
                 stop = true;
+            }
+            
+            if(canRxMessage[2].data[5])
+            {
+                QEIPos = 0;
+                QEIPosHigh = 0;
+                POS1CNT = 0;
             }
 		};
         

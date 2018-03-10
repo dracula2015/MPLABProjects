@@ -27,8 +27,10 @@
 #include "user.h"            /* variables/params used by user.c               */
 
 #define FCY 40000000
-#define BAUDRATE 115200//57600//9600  
-#define BRGVAL ((FCY/BAUDRATE)/16)-1
+#define BAUDRATE1 115200//57600//9600
+#define BAUDRATE2 100000//115200//57600//9600
+#define BRGVAL1 ((FCY/BAUDRATE1)/16)-1
+#define BRGVAL2 ((FCY/BAUDRATE2)/16)-1
 
 #define FCAN  	      	40000000 
 #define BITRATE 		1000000  
@@ -40,8 +42,9 @@
 
 float globalTime = 0.0;
 float globalTimePre = 0.0;
-char ReceivedChar;
-char TransmitChar;
+float delta = 0.0;
+unsigned char ReceivedChar, ReceivedChar1;
+unsigned char TransmitChar, TransmitChar1;
 long QEIPos = 0;
 long QEIPosHigh = 0;
 long wheelPos[3] = {0,0,0};
@@ -72,6 +75,11 @@ void InitApp(void)
     /*square board*/
     RPINR18bits.U1RXR = 20;
     //***************************
+    // Assign U2Rx To Pin RP17
+    //***************************
+    /*square board*/
+    RPINR19bits.U2RXR = 21;
+    //***************************
     // Assign U1CTS To Pin RP1
     //***************************
     //RPINR18bits.U1CTSR = 1;
@@ -85,6 +93,11 @@ void InitApp(void)
     //***************************
     /*square board*/
     RPOR2bits.RP4R = 3;
+    //***************************
+    // Assign U2Tx To Pin RP18
+    //***************************
+    /*square board*/
+    RPOR9bits.RP18R = 5;
     //***************************
     // Assign U1RTS To Pin RP3
     //***************************
@@ -125,7 +138,11 @@ void InitApp(void)
     TRISAbits.TRISA7=0;
     TRISAbits.TRISA10=0;
     TRISAbits.TRISA8=0;
-    TRISCbits.TRISC0=0;
+//    TRISCbits.TRISC0=0;//RP16
+    TRISCbits.TRISC1=0;//RP17
+//    TRISCbits.TRISC2=0;//RP28
+//    TRISCbits.TRISC5=0;//RP21
+
     /*
     TRISAbits.TRISA0 = 0;
     TRISAbits.TRISA1 = 0;
@@ -181,14 +198,30 @@ void UartInit(void)
     U1MODEbits.ABAUD = 0; // Auto-Baud Disabled
     U1MODEbits.BRGH = 0; // Low Speed mode
     U1MODEbits.LPBACK = 0;
-    U1BRG = BRGVAL; // BAUD Rate Setting for 115200//57600
+    U1BRG = BRGVAL1; // BAUD Rate Setting for 115200//57600
     U1STAbits.UTXISEL0 = 0; // Interrupt after one Tx character is transmitted
     U1STAbits.UTXISEL1 = 0;
     U1STAbits.URXISEL = 0;
     IEC0bits.U1TXIE = 1; // Enable UART Tx interrupt
     IEC0bits.U1RXIE = 1; // Enable UART Rx interrupt
+    IPC2bits.U1RXIP = 0b100;
     U1MODEbits.UARTEN = 1; // Enable UART
     U1STAbits.UTXEN = 1; // Enable UART Tx
+    
+    U2MODEbits.STSEL = 1; // 2-stop bit
+    U2MODEbits.PDSEL = 1; // Even Parity, 8-data bits
+    U2MODEbits.ABAUD = 0; // Auto-Baud Disabled
+    U2MODEbits.BRGH = 0; // Low Speed mode
+    U2MODEbits.LPBACK = 0;
+    U2BRG = BRGVAL2; // BAUD Rate Setting for 100000//115200//57600
+    U2STAbits.UTXISEL0 = 0; // Interrupt after one Tx character is transmitted
+    U2STAbits.UTXISEL1 = 0;
+    U2STAbits.URXISEL = 0;
+    IEC1bits.U2TXIE = 1; // Enable UART Tx interrupt
+    IEC1bits.U2RXIE = 1; // Enable UART Rx interrupt
+    IPC7bits.U2RXIP = 0b101;
+    U2MODEbits.UARTEN = 1; // Enable UART
+    U2STAbits.UTXEN = 1; // Enable UART Tx
     /* wait at least 104 usec (1/9600) before sending first char */
     //DELAY_105us
     /* wait at least 10 usec (1/115200) before sending first char */
@@ -211,8 +244,7 @@ void QEInit(void)
 
 void TimerInit(void)
 {
-    /* This code generates an interrupt on every second */
-    ///*
+    /* This code generates an interrupt on every 1 second */
     T3CONbits.TON = 0; // Stop any 16-bit Timer3 operation
     T2CONbits.TON = 0; // Stop any 16/32-bit Timer2 operation
     T2CONbits.T32 = 1; // Enable 32-bit Timer mode
@@ -227,7 +259,6 @@ void TimerInit(void)
     IFS0bits.T3IF = 0; // Clear Timer3 Interrupt Flag
     IEC0bits.T3IE = 1; // Enable Timer3 interrupt
     T2CONbits.TON = 1; // Start 32-bit Timer
-    //*/
     
     T4CONbits.TON = 0; // Stop any 16 Timer4 operation
     T4CONbits.TCS = 0; // Select internal instruction cycle clock
