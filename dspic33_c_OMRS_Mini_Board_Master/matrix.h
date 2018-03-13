@@ -43,7 +43,7 @@ typedef struct Matrix
     //
     //struct Matrix *(*m_inverse)(struct Matrix *m);
     //
-    //struct Matrix *(*m_equal)(struct Matrix *m,struct Matrix *n);
+    //struct void (*m_equal)(struct Matrix *m,struct Matrix *n);
 }Matrix;
 
 // TODO Insert declarations
@@ -67,7 +67,7 @@ Matrix *m_cofactor(Matrix *m);
 
 Matrix *m_inverse(Matrix *m);
 
-Matrix *m_equal(Matrix*m,Matrix*n);
+void m_equal(Matrix*m,Matrix*n);
 // TODO Insert declarations
 
 #endif

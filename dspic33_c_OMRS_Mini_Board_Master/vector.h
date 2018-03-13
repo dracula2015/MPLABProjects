@@ -48,7 +48,7 @@ typedef struct Vector3f
 
     //struct Vector3f *(*v_s_multiply)(struct Vector3f*v,float s);
 
-    //struct Vector3f *(*v_equal)(struct Vector3f*v,struct Vector3f*w);
+    //struct void (*v_equal)(struct Vector3f*v,struct Vector3f*w);
 
     //float (*v_length)(struct Vector3f*v);
 
@@ -68,7 +68,7 @@ float v_v_multiply(Vector3f*v,Vector3f*w);
 
 Vector3f *v_s_multiply(Vector3f*v,float s);
 
-Vector3f *v_equal(Vector3f*v,Vector3f*w);
+void v_equal(Vector3f*v,Vector3f*w);
 
 float v_length(Vector3f*v);
 
