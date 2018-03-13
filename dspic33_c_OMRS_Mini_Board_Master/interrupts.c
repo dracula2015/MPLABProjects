@@ -85,16 +85,15 @@
 bool go = 0;
 bool stop = 1;
 bool direction = 0;
+bool reset = false;
 float radioInterval = 0.0;
 unsigned int signalCount = 0;
 //unsigned int channelCount = 0;
 unsigned int radioSignal[25] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-unsigned int radioChannel[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int radioChannel[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int count[6]={0,0,0,0,0,0};
 int motor[3] = {0,0,0};
 int hostCommandCount=0;
-float radius = 1;//0.3;
-float speed = PI / 15;
 /* TODO Add interrupt routine code here. */
 void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
 {
@@ -120,30 +119,6 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
 //            U1TXREG = radioChannel[count];
 //        }
 //        U1TXREG = signalCount;
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
-        U1TXREG = wheelPos[0]>>24;
-        U1TXREG = wheelPos[0]>>16;
-        U1TXREG = wheelPos[0]>>8;
-        U1TXREG = wheelPos[0];
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
-        U1TXREG = wheelPos[1]>>24;
-        U1TXREG = wheelPos[1]>>16;
-        U1TXREG = wheelPos[1]>>8;
-        U1TXREG = wheelPos[1];
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
-        Delay_Us(Delay200uS_count);
-        U1TXREG = wheelPos[2]>>24;
-        U1TXREG = wheelPos[2]>>16;
-        U1TXREG = wheelPos[2]>>8;
-        U1TXREG = wheelPos[2];
     }
     else
     {
@@ -273,7 +248,7 @@ void __attribute__((__interrupt__, no_auto_psv)) _T4Interrupt(void)
     IFS1bits.T4IF = 0; // Clear Timer3 Interrupt Flag
 }
 
-void sbus_decode(unsigned int *radioSignal,unsigned int *radioChannel)
+void sbus_decode(unsigned int *radioSignal,int *radioChannel)
 {
     int channel = 15;
     unsigned int signal = 22;

@@ -39,23 +39,53 @@ typedef struct Parameter
 	float beta2;
 }Parameter;
 
+extern Matrix *Jacobin;
+extern Matrix *JConst;
+extern Matrix *JCoeff;
+extern Matrix* JBackMatrix;
+extern Vector3f* qd;
+extern Vector3f* dqd;
+extern Vector3f* ddqd;
+extern Vector3f* qdPre;
+extern Vector3f* dqdPre;
+extern Vector3f* q;
+extern Vector3f* qPre;
+extern Vector3f* dq;
+extern Vector3f* omega;
+extern Vector3f* controlEffect;
+extern Vector3f* joystick;
+extern Vector3f* joystickError;
+extern Vector3f* joystickIntegral;
+extern Vector3f* joystickIntegralPre;
+extern Vector3f* joystickControl;
+
 extern bool go;
 extern bool stop;
 extern bool direction;
+extern bool reset;
+
+extern float joystickGainKP;
+extern float joystickGainKI;
+extern float debounceTime;
+extern float eliminateJitter;
+extern bool debounce;
+extern bool debounceEdge;
 
 extern int count[6];
 extern int motor[3];
 extern int hostCommandCount;
 extern float radius;
 extern float speed;
+extern float rectLength;
 
+extern float loopTime;
 extern float globalTime;
 extern float globalTimePre;
 extern float delta;
 extern unsigned char ReceivedChar, ReceivedChar1;
 extern unsigned char TransmitChar, TransmitChar1;
 extern unsigned int radioSignal[25];
-extern unsigned int radioChannel[16];
+extern int radioChannel[16];
 extern long QEIPos;
 extern long QEIPosHigh;
 extern long wheelPos[3];
@@ -87,6 +117,9 @@ void UartInit(void);
 void QEInit(void);
 void PwmInit(void); 
 void TimerInit(void);
-void sbus_decode(unsigned int *radioSignal,unsigned int *radioChannel);
+void sbus_decode(unsigned int *radioSignal,int *radioChannel);
+void InitialParameters(void);
 void Debounce(void);
+void Joystick(void);
+void Trajectory(void);
 #endif

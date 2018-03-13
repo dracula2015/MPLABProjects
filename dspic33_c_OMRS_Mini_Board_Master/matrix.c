@@ -174,7 +174,7 @@ Matrix *m_inverse(Matrix *m)
     return temp;
 }
 
-Matrix *m_equal(Matrix*m,Matrix*n)
+void m_equal(Matrix*m,Matrix*n)
 {
     int i,j;
     for(i=0;i<3;i++)
@@ -184,5 +184,5 @@ Matrix *m_equal(Matrix*m,Matrix*n)
             m->triMatrix[i][j] = n->triMatrix[i][j];
         }
     }    
-    return m;  
+//    return m;  
 }

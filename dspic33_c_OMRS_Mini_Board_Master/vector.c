@@ -49,12 +49,12 @@ Vector3f *v_s_multiply(Vector3f*v,float s)
     return v_constructor(local, NULL, v->x * s, v->y * s, v->z * s);
 }
 
-Vector3f *v_equal(Vector3f*v,Vector3f*w)
+void v_equal(Vector3f*v,Vector3f*w)
 {
     v->x = w->x;
     v->y = w->y;
     v->z = w->z;
-    return v;
+//    return v;
 }
 
 float v_length(Vector3f*v)
