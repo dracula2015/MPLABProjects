@@ -24,7 +24,7 @@
 
 ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
 mID canTxMessage[5];
-mID canRxMessage[3];
+mID canRxMessage[6];
 
 void ecanRtrRespond(mID *message)
 {
@@ -310,16 +310,28 @@ void clearRxFlags(unsigned char buffer_number)
     /* check to see if buffer 3 is full */
 	if((C1RXFUL1bits.RXFUL3) && (buffer_number==3))
 		/* clear flag */
-		C1RXFUL1bits.RXFUL3=0;		
+    {C1RXFUL1bits.RXFUL3=0;}
 	/* check to see if buffer 4 is full */
 	else if((C1RXFUL1bits.RXFUL4) && (buffer_number==4))
 		/* clear flag */
-		C1RXFUL1bits.RXFUL4=0;				
+    {C1RXFUL1bits.RXFUL4=0;}				
 	/* check to see if buffer 5 is full */
 	else if((C1RXFUL1bits.RXFUL5) && (buffer_number==5))
 		/* clear flag */
-		C1RXFUL1bits.RXFUL5=0;				
-	else;
+    {C1RXFUL1bits.RXFUL5=0;}
+    /* check to see if buffer 8 is full */
+	else if((C1RXFUL1bits.RXFUL8) && (buffer_number==8))
+		/* clear flag */
+    {C1RXFUL1bits.RXFUL8=0;}		
+	/* check to see if buffer 9 is full */
+	else if((C1RXFUL1bits.RXFUL9) && (buffer_number==9))
+		/* clear flag */
+    {C1RXFUL1bits.RXFUL9=0;}				
+	/* check to see if buffer 10 is full */
+	else if((C1RXFUL1bits.RXFUL10) && (buffer_number==10))
+		/* clear flag */
+	{C1RXFUL1bits.RXFUL10=0;}
+    else;
 
 }
 
@@ -370,6 +382,7 @@ void ECANInit (void)
 	/* Filter configuration */
 	/* Enable window to access the filter configuration registers */
 	C1CTRL1bits.WIN=0b1;
+    
 	/* select acceptance mask 0 filter 0 buffer 3 */
 	C1FMSKSEL1bits.F0MSK=0;
 	/* configure accpetence mask 0 - match the id in filter 0 
@@ -384,7 +397,7 @@ void ECANInit (void)
     C1RXM0EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
 	C1RXM0SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
 	/* configure accpetence filter 0 
-	configure accpetence filter 1 - accept only XTD ID 0x12345677 
+	configure accpetence filter 0 - accept only XTD ID 0x12345677 
 	setup the filter to accept only extended message 0x12345677, 
 	the macro when called as CAN_FILTERMASK2REG_EID0(0x5677) 
 	will write the register C1RXF1EID to include extended 
@@ -395,7 +408,7 @@ void ECANInit (void)
 	*/ 	
     C1RXF0EID=CAN_FILTERMASK2REG_EID0(0x5677);
 	C1RXF0SID=CAN_FILTERMASK2REG_EID1(0x1234);
-	/* set filter to check for standard ID and accept standard id only */
+	/* set filter to check for extended ID and accept extended id only */
 	C1RXM0SID=CAN_SETMIDE(C1RXM0SID);
 	C1RXF0SID=CAN_FILTERXTD(C1RXF0SID);	
 	/* acceptance filter to use buffer 3 for incoming messages */
@@ -438,6 +451,17 @@ void ECANInit (void)
 	
 	/* select acceptance mask 2 filter 2 and buffer 5 */
 	C1FMSKSEL1bits.F2MSK=0b10;	
+    /* configure accpetence mask 2 - match id in filter 2 	
+	setup the mask to check every bit of the extended message, 
+	the macro when called as CAN_FILTERMASK2REG_EID0(0xFFFF) 
+	will write the register C1RXM1EID to include extended 
+	message id bits EID0 to EID15 in filter comparison. 
+	the macro when called as CAN_FILTERMASK2REG_EID1(0x1FFF) 
+	will write the register C1RXM1SID to include extended 
+	message id bits EID16 to EID28 in filter comparison. 	
+	*/ 			
+	C1RXM2EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+	C1RXM2SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
 	/* configure acceptance filter 2 
 	configure accpetence filter 2 - accept only XTD ID 0x12345679 
 	setup the filter to accept only extended message 0x12345679, 
@@ -457,7 +481,55 @@ void ECANInit (void)
 	C1BUFPNT1bits.F2BP=0b0101;
 	/* enable filter 2 */
 	C1FEN1bits.FLTEN2=1;
-	         
+	
+    /* select acceptance mask 0 filter 3 buffer 8 */
+	C1FMSKSEL1bits.F3MSK=0;
+	/* configure accpetence mask 0 - match the id in filter 3 */ 	
+    C1RXM0EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+	C1RXM0SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
+	/* configure accpetence filter 3 - accept only XTD ID 0x12345657 */ 	
+    C1RXF3EID=CAN_FILTERMASK2REG_EID0(0x5657);
+	C1RXF3SID=CAN_FILTERMASK2REG_EID1(0x1234);
+	/* set filter to check for extended ID and accept extended id only */
+	C1RXM0SID=CAN_SETMIDE(C1RXM0SID);
+	C1RXF3SID=CAN_FILTERXTD(C1RXF3SID);	
+	/* acceptance filter to use buffer 8 for incoming messages */
+	C1BUFPNT1bits.F3BP=0b1000;
+	/* enable filter 3 */
+	C1FEN1bits.FLTEN3=1;
+    
+    /* select acceptance mask 1 filter 4 buffer 9 */
+	C1FMSKSEL1bits.F4MSK=1;
+	/* configure accpetence mask 1 - match the id in filter 4 */ 	
+    C1RXM1EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+	C1RXM1SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
+	/* configure accpetence filter 4 - accept only XTD ID 0x12345658 */ 	
+    C1RXF4EID=CAN_FILTERMASK2REG_EID0(0x5658);
+	C1RXF4SID=CAN_FILTERMASK2REG_EID1(0x1234);
+	/* set filter to check for extended ID and accept extended id only */
+	C1RXM1SID=CAN_SETMIDE(C1RXM1SID);
+	C1RXF4SID=CAN_FILTERXTD(C1RXF4SID);	
+	/* acceptance filter to use buffer 9 for incoming messages */
+	C1BUFPNT2bits.F4BP=0b1001;
+	/* enable filter 4 */
+	C1FEN1bits.FLTEN4=1;
+
+    /* select acceptance mask 2 filter 5 buffer 10 */
+	C1FMSKSEL1bits.F5MSK=2;
+	/* configure accpetence mask 2 - match the id in filter 5 */ 	
+    C1RXM2EID=CAN_FILTERMASK2REG_EID0(0xFFFF);
+	C1RXM2SID=CAN_FILTERMASK2REG_EID1(0x1FFF);
+	/* configure accpetence filter 5 - accept only XTD ID 0x12345659 */ 	
+    C1RXF5EID=CAN_FILTERMASK2REG_EID0(0x5659);
+	C1RXF5SID=CAN_FILTERMASK2REG_EID1(0x1234);
+	/* set filter to check for extended ID and accept extended id only */
+	C1RXM2SID=CAN_SETMIDE(C1RXM2SID);
+	C1RXF5SID=CAN_FILTERXTD(C1RXF5SID);	
+	/* acceptance filter to use buffer 10 for incoming messages */
+	C1BUFPNT2bits.F5BP=0b1010;
+	/* enable filter 5 */
+	C1FEN1bits.FLTEN5=1;
+    
 	/* clear window bit to access ECAN control registers */
 	C1CTRL1bits.WIN=0;
 		
@@ -502,11 +574,11 @@ void ECANInit (void)
 	/* clear the buffer full flags */
 	C1INTFbits.RBIF=0;
     /*ECAN1 Interrupt Priority*/
-//    IPC8bits.C1IP = 0b101;
+    IPC8bits.C1IP = 0b101;
     /*ECAN1 Receive Interrupt Priority*/
-//    IPC8bits.C1RXIP = 0b101;
+    IPC8bits.C1RXIP = 0b101;
     /*ECAN1 Transmit Interrupt Priority*/
-//    IPC17bits.C1TXIP = 0b101;
+    IPC17bits.C1TXIP = 0b101;
     /* Enable ECAN1 Interrupt */     	
 	IEC2bits.C1IE=1;	
 	/* enable Transmit interrupt */

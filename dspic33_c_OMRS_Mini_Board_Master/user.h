@@ -39,10 +39,22 @@ typedef struct Parameter
 	float beta2;
 }Parameter;
 
+typedef struct Ahrs
+{
+    union {
+        unsigned char signal[24];
+        struct {
+            float attitude[3];
+            float acclerom[3];
+        };
+    };
+} AHRS;
+
 extern Matrix *Jacobin;
 extern Matrix *JConst;
 extern Matrix *JCoeff;
 extern Matrix* JBackMatrix;
+extern Matrix* WMobile;
 extern Vector3f* qd;
 extern Vector3f* dqd;
 extern Vector3f* ddqd;
@@ -55,9 +67,9 @@ extern Vector3f* omega;
 extern Vector3f* controlEffect;
 extern Vector3f* joystick;
 extern Vector3f* joystickError;
-extern Vector3f* joystickIntegral;
-extern Vector3f* joystickIntegralPre;
-extern Vector3f* joystickControl;
+extern Vector3f* ahrsAttitude;
+extern Vector3f* ahrsAttitudePre;
+extern Vector3f* dAhrsAttitude;
 
 extern bool go;
 extern bool stop;
@@ -65,7 +77,7 @@ extern bool direction;
 extern bool reset;
 
 extern float joystickGainKP;
-extern float joystickGainKI;
+extern float joystickGainKD;
 extern float debounceTime;
 extern float eliminateJitter;
 extern bool debounce;
@@ -86,6 +98,13 @@ extern unsigned char ReceivedChar, ReceivedChar1;
 extern unsigned char TransmitChar, TransmitChar1;
 extern unsigned int radioSignal[25];
 extern int radioChannel[16];
+extern float radioInterval;
+extern unsigned int radioSignalCount;
+//extern unsigned int ahrsSignalCount;
+//extern unsigned char ahrsSignal[24];
+//extern float ahrsAttitude[3];
+//extern float ahrsAcclerom[3];
+
 extern long QEIPos;
 extern long QEIPosHigh;
 extern long wheelPos[3];
@@ -103,6 +122,7 @@ extern Vector3f* pointerVector[100];
 extern Vector3f* pointerVectorGlobal[100];
 
 extern Parameter P;
+extern AHRS ahrs;
 extern Matrix *Kp;
 extern Matrix *Kd;
 /******************************************************************************/
@@ -117,8 +137,9 @@ void UartInit(void);
 void QEInit(void);
 void PwmInit(void); 
 void TimerInit(void);
-void sbus_decode(unsigned int *radioSignal,int *radioChannel);
 void InitialParameters(void);
+void ahrs_decode(unsigned int *ahrsSignal,float *ahrsAttitude, float *ahrsAcclerom);
+void sbus_decode(unsigned int *radioSignal,int *radioChannel);
 void Debounce(void);
 void Joystick(void);
 void Trajectory(void);

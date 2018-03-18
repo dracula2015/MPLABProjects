@@ -11,6 +11,7 @@ Matrix *Jacobin;
 Matrix *JConst;
 Matrix *JCoeff;
 Matrix* JBackMatrix;
+Matrix* WMobile;
 Vector3f* qd;
 Vector3f* dqd;
 Vector3f* ddqd;
@@ -23,9 +24,13 @@ Vector3f* omega;
 Vector3f* controlEffect;
 Vector3f* joystick;
 Vector3f* joystickError;
-Vector3f* joystickIntegral;
-Vector3f* joystickIntegralPre;
-Vector3f* joystickControl;
+Vector3f* ahrsAttitude;
+Vector3f* ahrsAttitudePre;
+Vector3f* dAhrsAttitude;
+
+Parameter P;
+Matrix *Kp;
+Matrix *Kd;
 
 void InitialParameters(void)
 {
@@ -47,6 +52,18 @@ void InitialParameters(void)
     P.beta1 = pow(P.n, 2) * (P.b0 + P.kt*P.kb / P.Ra) / pow(P.r, 2);
     P.beta2 = P.n*P.kt / P.r / P.Ra;
     
+    int i = 0;
+    for(i=0;i<24;i++)
+    {
+        ahrs.signal[i] = 0;
+    }
+    ahrs.attitude[0] = 0.0;
+    ahrs.attitude[1] = 0.0;
+    ahrs.attitude[2] = 0.0;
+    ahrs.acclerom[0] = 0.0;
+    ahrs.acclerom[1] = 0.0;
+    ahrs.acclerom[2] = 0.0;
+    
     Jacobin = m_constructor(global, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     JCoeff = m_constructor(global, NULL, NULL, 1, 0, 0, 0, 1, 0, 0, 0, 1);
     Kp = m_constructor(global, NULL, NULL, 6, 0, 0, 0, 6, 0, 0, 0, 6);
@@ -62,15 +79,14 @@ void InitialParameters(void)
     omega = v_constructor(global, NULL, 0, 0, 0);
     joystick = v_constructor(global, NULL, 0, 0, 0);
     joystickError = v_constructor(global, NULL, 0, 0, 0);
-    joystickIntegral = v_constructor(global, NULL, 0, 0, 0);
-    joystickIntegralPre = v_constructor(global, NULL, 0, 0, 0);
-    joystickControl = v_constructor(global, NULL, 0, 0, 0);
+    ahrsAttitude = v_constructor(global, NULL, 0, 0, 0);
+    ahrsAttitudePre = v_constructor(global, NULL, 0, 0, 0);
+    dAhrsAttitude = v_constructor(global, NULL, 0, 0, 0);
     
     JBackMatrix = m_constructor(global, NULL, NULL, -0.5, sqrt(3)/2, P.La, -0.5, -sqrt(3)/2, P.La, 1, 0, P.La);
     JConst = m_constructor(global, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     m_equal(JConst,m_inverse(JBackMatrix));
-    JCoeff->triMatrix[2][2] = P.r/P.n;
-    
+    Matrix* WMobile = m_constructor(global, NULL, NULL, 1, 0, 0, 0, 1, 0, 0, 0, 1);
     /* robot was default controlled by the MCU*/
     radioSignal[4] = 0x01E0;
 //    float Jcoefficient=0.0;

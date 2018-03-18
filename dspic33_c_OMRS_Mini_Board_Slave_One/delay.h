@@ -21,6 +21,8 @@ void Delay_Us( unsigned int delayUs_count );
 #define Delay_2mS_Cnt	  (Fcy * 0.002) / 2950
 #define Delay_5mS_Cnt	  (Fcy * 0.005) / 2950
 #define Delay_15mS_Cnt 	  (Fcy * 0.015) / 2950
+#define Delay_100mS_Cnt	  (Fcy * 0.1) / 2950 
+#define Delay_500mS_Cnt	  (Fcy * 0.5) / 2950 
 #define Delay_1S_Cnt	  (Fcy * 1) / 2950 
 // TODO Insert appropriate #include <>
 

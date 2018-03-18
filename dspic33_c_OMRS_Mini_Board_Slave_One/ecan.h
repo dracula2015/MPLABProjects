@@ -17,7 +17,7 @@
 
 /* Defines used in ecan.c */
 /* ECAN message buffer length */
-#define ECAN1_MSG_BUF_LENGTH 	4
+#define ECAN1_MSG_BUF_LENGTH 	8//4
 
 /* ECAN message type identifiers */
 #define CAN_MSG_DATA	0x01
@@ -71,7 +71,7 @@ typedef struct{
     unsigned char data_length;
 }mID;
 
-extern mID canTxMessage;
+extern mID canTxMessage[4];
 extern mID canRxMessage[3];
 /* function prototypes as defined in can.c */
 void ECANInit (void);

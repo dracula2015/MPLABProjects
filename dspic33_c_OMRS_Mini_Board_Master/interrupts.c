@@ -82,18 +82,7 @@
 /******************************************************************************/
 /* Interrupt Routines                                                         */
 /******************************************************************************/
-bool go = 0;
-bool stop = 1;
-bool direction = 0;
-bool reset = false;
-float radioInterval = 0.0;
-unsigned int signalCount = 0;
-//unsigned int channelCount = 0;
-unsigned int radioSignal[25] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-int radioChannel[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-int count[6]={0,0,0,0,0,0};
-int motor[3] = {0,0,0};
-int hostCommandCount=0;
+
 /* TODO Add interrupt routine code here. */
 void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
 {
@@ -118,7 +107,6 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
 //            U1TXREG = radioChannel[count]>>8;
 //            U1TXREG = radioChannel[count];
 //        }
-//        U1TXREG = signalCount;
     }
     else
     {
@@ -156,17 +144,17 @@ void __attribute__((__interrupt__, auto_psv)) _U2RXInterrupt(void)
 //    U1TXREG = ReceivedChar1;
     if(radioInterval>0.01)
     {    
-        signalCount = 0;
+        radioSignalCount = 0;
     }
-    radioSignal[signalCount] = ReceivedChar1;
-    signalCount += 1;
-    if(signalCount == 25)
+    radioSignal[radioSignalCount] = ReceivedChar1;
+    radioSignalCount += 1;
+    if(radioSignalCount == 25)
     {
         if(radioSignal[0] == 0x0f)
         {
             sbus_decode(radioSignal,radioChannel);
         }
-        signalCount = 0;
+        radioSignalCount = 0;
     }
     radioInterval = 0.0;
     IFS1bits.U2RXIF = 0;
@@ -213,19 +201,42 @@ void __attribute__((interrupt,no_auto_psv))_C1Interrupt(void)
 			canRxMessage[2].buffer=5;
 //            U1TXREG = 0x03;
 		}
-		else;
+        /* check to see if buffer 8 is full */
+	    if(C1RXFUL1bits.RXFUL8)
+	    {			
+			/* set the buffer full flag and the buffer received flag */
+			canRxMessage[3].buffer_status=CAN_BUF_FULL;
+			canRxMessage[3].buffer=8;	
+//            U1TXREG = 0x04;
+		}		
+		/* check to see if buffer 9 is full */
+		if(C1RXFUL1bits.RXFUL9)
+		{
+			/* set the buffer full flag and the buffer received flag */
+			canRxMessage[4].buffer_status=CAN_BUF_FULL;
+			canRxMessage[4].buffer=9;
+//            U1TXREG = 0x05;
+		}
+		/* check to see if buffer 10 is full */
+		if(C1RXFUL1bits.RXFUL10)
+		{
+			/* set the buffer full flag and the buffer received flag */
+			canRxMessage[5].buffer_status=CAN_BUF_FULL;
+			canRxMessage[5].buffer=10;
+//            U1TXREG = 0x06;
+		}
 		/* clear flag */
 		C1INTFbits.RBIF = 0;
-//        U1TXREG = 0x04;
+//        U1TXREG = 0x00;
 	}
 	else if(C1INTFbits.TBIF)
     {
 	    /* clear flag */
 		C1INTFbits.TBIF = 0;
-//        U1TXREG = 0x05;	    
+//        U1TXREG = 0x07;	    
 	}
 	else;
-//	U1TXREG = 0x06;
+//	U1TXREG = 0x08;
 	/* clear interrupt flag */
 	IFS2bits.C1IF=0;
 }
@@ -246,30 +257,4 @@ void __attribute__((__interrupt__, no_auto_psv)) _T4Interrupt(void)
 //    LATAbits.LATA8 = ~LATAbits.LATA8;
 //    LATCbits.LATC0 = ~LATCbits.LATC0;
     IFS1bits.T4IF = 0; // Clear Timer3 Interrupt Flag
-}
-
-void sbus_decode(unsigned int *radioSignal,int *radioChannel)
-{
-    int channel = 15;
-    unsigned int signal = 22;
-    unsigned int shift = 3;
-    for(channel=15;channel>=0;channel--)
-    {
-        if(shift<=8)
-        {
-            radioChannel[channel] = (radioSignal[signal]<<shift) + (radioSignal[signal-1]>>(8-shift));
-            signal--;
-            if(shift == 8)
-            {
-                signal--;
-            };
-        }else
-        {
-            radioChannel[channel] = (radioSignal[signal]<<shift) + (radioSignal[signal-1]<<(shift-8)) + (radioSignal[signal-2]>>(16-shift));
-            signal -= 2;
-        }        
-        radioChannel[channel] = radioChannel[channel] & 0x7ff;
-        shift += 3;
-        if(shift>=11){shift=shift-8;}
-    }
 }

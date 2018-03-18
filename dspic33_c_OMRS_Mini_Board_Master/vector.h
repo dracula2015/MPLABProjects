@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>        /* Includes int definition                    */
+#include <stdint.h>        /* Includes int definition                         */
 #include <stdbool.h>       /* Includes true/false definition                  */
 #include <math.h>
 #include <time.h>

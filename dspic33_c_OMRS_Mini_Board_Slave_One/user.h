@@ -14,12 +14,36 @@
 /******************************************************************************/
 #include "delay.h"
 #include "ecan.h"
+#include <stdint.h>        /* Includes int definition                         */
+#include <stdbool.h>       /* Includes true/false definition                  */
+#include <math.h>
 /* TODO Application specific user parameters used in user.c may go here */
+
+typedef struct Ahrs
+{
+    union {
+        unsigned char signal[24];
+        struct {
+            float attitude[3];
+            float acclerom[3];
+        };
+    };
+} AHRS;
+
 extern float globalTime;
-extern char ReceivedChar;
-extern char TransmitChar;
+extern char ReceivedChar, ReceivedChar1;
+extern char TransmitChar, TransmitChar1;
 extern long QEIPos;
 extern long QEIPosHigh;
+
+//extern unsigned char ahrsSignal[24];
+//extern float ahrsAttitude[3];
+//extern float ahrsAcclerom[3];
+//extern unsigned char* attitudeAddr;
+//extern unsigned int radioSignalCount;
+extern unsigned int ahrsSignalCount;
+extern AHRS ahrs;
+extern bool ahrsMessage;
 /******************************************************************************/
 /* User Function Prototypes                                                   */
 /******************************************************************************/
@@ -30,5 +54,5 @@ void UartInit(void);
 void QEInit(void);
 void PwmInit(void);
 void TimerInit(void);
-
+void ahrs_decode(unsigned int *ahrsSignal,float *ahrsAttitude, float *ahrsAcclerom);
 #endif

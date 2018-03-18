@@ -8,11 +8,37 @@
 #include "user.h"
 
 float joystickGainKP = 0;
-float joystickGainKI = 0;
+float joystickGainKD = 0;
 float debounceTime = 0.0;
 float eliminateJitter = 0.0;
 bool debounce = false;
 bool debounceEdge = NULL;
+
+void sbus_decode(unsigned int *radioSignal,int *radioChannel)
+{
+    int channel = 15;
+    unsigned int signal = 22;
+    unsigned int shift = 3;
+    for(channel=15;channel>=0;channel--)
+    {
+        if(shift<=8)
+        {
+            radioChannel[channel] = (radioSignal[signal]<<shift) + (radioSignal[signal-1]>>(8-shift));
+            signal--;
+            if(shift == 8)
+            {
+                signal--;
+            };
+        }else
+        {
+            radioChannel[channel] = (radioSignal[signal]<<shift) + (radioSignal[signal-1]<<(shift-8)) + (radioSignal[signal-2]>>(16-shift));
+            signal -= 2;
+        }        
+        radioChannel[channel] = radioChannel[channel] & 0x7ff;
+        shift += 3;
+        if(shift>=11){shift=shift-8;}
+    }
+}
 
 void Debounce(void)
 {
@@ -89,19 +115,33 @@ void Joystick(void)
 
         joystick->z = (0x0400 - radioChannel[3])/672.0*10.0;
 
-        joystickGainKI = (radioChannel[5] - 0x0160)/1344.0*100.0;
+        joystickGainKD = (radioChannel[5] - 0x0160)/1344.0*10.0;
 
-        joystickGainKP = (radioChannel[6] - 0x0160)/1344.0*100.0;
+        joystickGainKP = (radioChannel[6] - 0x0160)/1344.0*10.0;
+        
+//        ahrsAttitude->z = fmodf(ahrsAttitude->z,360);
+//        ahrsAttitude->z = ahrsAttitude->z / 180 * PI;
+        JCoeff->triMatrix[0][0] = cos(ahrsAttitude->z);
+        JCoeff->triMatrix[0][1] = sin(ahrsAttitude->z);
+        JCoeff->triMatrix[1][0] = -sin(ahrsAttitude->z);
+        JCoeff->triMatrix[1][1] = cos(ahrsAttitude->z);
+        JCoeff->triMatrix[2][2] = 1;
+
+//        dAhrsAttitude->z = fmodf(dAhrsAttitude->z,360);
+//        dAhrsAttitude->z = dAhrsAttitude->z / 180 * PI;
+//        JCoeff->triMatrix[0][0] = cos(dAhrsAttitude->z);
+//        JCoeff->triMatrix[0][1] = sin(dAhrsAttitude->z);
+//        JCoeff->triMatrix[1][0] = -sin(dAhrsAttitude->z);
+//        JCoeff->triMatrix[1][1] = cos(dAhrsAttitude->z);
+//        JCoeff->triMatrix[2][2] = 1;
+        
 /* close loop */
-        v_equal(joystickError,v_minus(m_v_multiply(JBackMatrix,joystick),v_s_multiply(omega,P.r/P.n)));
-        v_equal(joystickIntegral,v_plus(joystickIntegralPre,v_s_multiply(joystickError,delta)));
-        v_equal(joystickIntegralPre,joystickIntegral);
-        v_equal(joystickControl,v_plus(v_s_multiply(joystickError,joystickGainKP),v_s_multiply(joystickIntegral,joystickGainKI)));
-        v_equal(controlEffect,joystickControl);
+//        v_equal(joystickError,v_minus(m_v_multiply(JBackMatrix,joystick),v_s_multiply(omega,P.r/P.n)));
+        v_equal(joystickError,v_minus(m_v_multiply(JBackMatrix,m_v_multiply(JCoeff,joystick)),v_s_multiply(omega,P.r/P.n)));
+        v_equal(controlEffect,v_plus(v_s_multiply(joystickError,joystickGainKP),v_s_multiply(v_s_multiply(joystickError,1/delta),joystickGainKD)));
              
 //        v_equal(joystickError,v_minus(joystick,omega));
-//        v_equal(joystickControl,v_s_multiply(joystickError,joystickGainKP));
-//        v_equal(controlEffect,joystickControl);
+//        v_equal(controlEffect,v_s_multiply(joystickError,joystickGainKP));
         
 /* open loop */
 //        v_equal(controlEffect,m_v_multiply(JBackMatrix,joystick));

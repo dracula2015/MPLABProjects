@@ -86,13 +86,40 @@
 void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
 {
     ReceivedChar = U1RXREG;
-    U1TXREG = ReceivedChar;
+    U1TXREG = ReceivedChar; 
+    if(ReceivedChar == 'u')
+    {
+        U2TXREG = '#';
+        U2TXREG = 'f';
+    }
     IFS0bits.U1RXIF = 0;
 }
 
 void __attribute__((interrupt, auto_psv)) _U1TXInterrupt(void)
 {
     IFS0bits.U1TXIF = 0; // clear TX interrupt flag
+}
+
+void __attribute__((__interrupt__, auto_psv)) _U2RXInterrupt(void)
+{
+    ReceivedChar1 = U2RXREG;
+    U1TXREG = ReceivedChar1;
+    ahrs.signal[ahrsSignalCount] = ReceivedChar1;
+    ahrsSignalCount += 1;
+    if(ahrsSignalCount == 24)
+    {
+//        ahrs_decode(ahrs.signal,ahrs.attitude,ahrs.acclerom);
+        U2TXREG = '#';
+        U2TXREG = 'f';
+        ahrsSignalCount = 0;
+        ahrsMessage = true;
+    }
+    IFS1bits.U2RXIF = 0;
+}
+
+void __attribute__((interrupt, auto_psv)) _U2TXInterrupt(void)
+{
+    IFS1bits.U2TXIF = 0; // clear TX interrupt flag
 }
 
 void __attribute__((interrupt, auto_psv)) _QEI1Interrupt(void)

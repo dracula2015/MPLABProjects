@@ -74,7 +74,7 @@ typedef struct{
 }mID;
 
 extern mID canTxMessage[5];
-extern mID canRxMessage[3];
+extern mID canRxMessage[6];
 /* function prototypes as defined in can.c */
 void ECANInit (void);
 void DMAInit(void);

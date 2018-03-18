@@ -49,25 +49,96 @@ int main(void)
     InitApp();
     /* TODO <INSERT USER APPLICATION CODE HERE> */
 
+    int ahrsCount = 0;
+    int i = 0;
+    for(i=0;i<24;i++)
+    {
+        ahrs.signal[i] = 0;
+    }
+    ahrs.attitude[0] = 0.0;
+    ahrs.attitude[1] = 0.0;
+    ahrs.attitude[2] = 0.0;
+    ahrs.acclerom[0] = 0.0;
+    ahrs.acclerom[1] = 0.0;
+    ahrs.acclerom[2] = 0.0;
+    
     /* configure and send a message */
-    canTxMessage.message_type=CAN_MSG_DATA;
+    canTxMessage[0].message_type=CAN_MSG_DATA;
     //canTxMessage.message_type=CAN_MSG_RTR;
-    canTxMessage.frame_type=CAN_FRAME_EXT;
+    canTxMessage[0].frame_type=CAN_FRAME_EXT;
     //canTxMessage.frame_type=CAN_FRAME_STD;
-    canTxMessage.buffer=0;
-    canTxMessage.id=0x12345677;
-    canTxMessage.data_length=4;
+    canTxMessage[0].buffer=0;
+    canTxMessage[0].id=0x12345677;
+    canTxMessage[0].data_length=8;
 
     QEIPos = (QEIPosHigh << 16) + POS1CNT; 
-    canTxMessage.data[0] = QEIPos >> 24;
-    canTxMessage.data[1] = QEIPos >> 16;
-    canTxMessage.data[2] = QEIPos >> 8;
-    canTxMessage.data[3] = QEIPos;
-    ecanRtrRespond(&canTxMessage);
-
+    canTxMessage[0].data[0] = QEIPos >> 24;
+    canTxMessage[0].data[1] = QEIPos >> 16;
+    canTxMessage[0].data[2] = QEIPos >> 8;
+    canTxMessage[0].data[3] = QEIPos;
+    canTxMessage[0].data[4] = 0;
+    canTxMessage[0].data[5] = 0;
+    canTxMessage[0].data[6] = 0;
+    canTxMessage[0].data[7] = 0;
+    ecanRtrRespond(&canTxMessage[0]);
     /* send a CAN message */
-    sendECAN(&canTxMessage);
+    sendECAN(&canTxMessage[0]);
+
+    /* configure and send a message */
+    canTxMessage[1].message_type=CAN_MSG_DATA;
+    //canTxMessage.message_type=CAN_MSG_RTR;
+    canTxMessage[1].frame_type=CAN_FRAME_EXT;
+    //canTxMessage.frame_type=CAN_FRAME_STD;
+    canTxMessage[1].buffer=4;
+    canTxMessage[1].id=0x12345657;
+    canTxMessage[1].data_length=8;
+    canTxMessage[1].data[0] = 0;
+    canTxMessage[1].data[1] = 0;
+    canTxMessage[1].data[2] = 0;
+    canTxMessage[1].data[3] = 0;
+    canTxMessage[1].data[4] = 0;
+    canTxMessage[1].data[5] = 0;
+    canTxMessage[1].data[6] = 0;
+    canTxMessage[1].data[7] = 0;
     
+    /* configure and send a message */
+    canTxMessage[2].message_type=CAN_MSG_DATA;
+    //canTxMessage.message_type=CAN_MSG_RTR;
+    canTxMessage[2].frame_type=CAN_FRAME_EXT;
+    //canTxMessage.frame_type=CAN_FRAME_STD;
+    canTxMessage[2].buffer=5;
+    canTxMessage[2].id=0x12345658;
+    canTxMessage[2].data_length=8;
+    canTxMessage[2].data[0] = 0;
+    canTxMessage[2].data[1] = 0;
+    canTxMessage[2].data[2] = 0;
+    canTxMessage[2].data[3] = 0;
+    canTxMessage[2].data[4] = 0;
+    canTxMessage[2].data[5] = 0;
+    canTxMessage[2].data[6] = 0;
+    canTxMessage[2].data[7] = 0;
+    
+    /* configure and send a message */
+    canTxMessage[3].message_type=CAN_MSG_DATA;
+    //canTxMessage.message_type=CAN_MSG_RTR;
+    canTxMessage[3].frame_type=CAN_FRAME_EXT;
+    //canTxMessage.frame_type=CAN_FRAME_STD;
+    canTxMessage[3].buffer=6;
+    canTxMessage[3].id=0x12345659;
+    canTxMessage[3].data_length=8;
+    canTxMessage[3].data[0] = 0;
+    canTxMessage[3].data[1] = 0;
+    canTxMessage[3].data[2] = 0;
+    canTxMessage[3].data[3] = 0;
+    canTxMessage[3].data[4] = 0;
+    canTxMessage[3].data[5] = 0;
+    canTxMessage[3].data[6] = 0;
+    canTxMessage[3].data[7] = 0;
+
+//    Delay_Us(Delay200uS_count);
+    Delay(Delay_1S_Cnt);
+    U2TXREG = '#';
+    U2TXREG = 'f';
     while(1)
     {
         if(U1STAbits.PERR==1)
@@ -87,11 +158,38 @@ int main(void)
         }
         
         QEIPos = (QEIPosHigh << 16) + POS1CNT; 
-        canTxMessage.data[0] = QEIPos >> 24;
-        canTxMessage.data[1] = QEIPos >> 16;
-        canTxMessage.data[2] = QEIPos >> 8;
-        canTxMessage.data[3] = QEIPos;
-        ecanRtrRespond(&canTxMessage);
+        canTxMessage[0].data[0] = QEIPos >> 24;
+        canTxMessage[0].data[1] = QEIPos >> 16;
+        canTxMessage[0].data[2] = QEIPos >> 8;
+        canTxMessage[0].data[3] = QEIPos;
+        canTxMessage[0].data[4] = ahrs.signal[0];
+        canTxMessage[0].data[5] = ahrs.signal[1];
+        canTxMessage[0].data[6] = ahrs.signal[2];
+        canTxMessage[0].data[7] = ahrs.signal[3];
+        ecanRtrRespond(&canTxMessage[0]);
+ 
+        if(ahrsMessage)
+        {
+            for(ahrsCount=0;ahrsCount<8;ahrsCount++)
+            {
+                canTxMessage[1].data[ahrsCount] = ahrs.signal[ahrsCount];
+            }
+            
+            for(ahrsCount=8;ahrsCount<16;ahrsCount++)
+            {
+                canTxMessage[2].data[ahrsCount-8] = ahrs.signal[ahrsCount];
+            }
+            
+            for(ahrsCount=16;ahrsCount<24;ahrsCount++)
+            {
+                canTxMessage[3].data[ahrsCount-16] = ahrs.signal[ahrsCount];
+            }
+            
+            sendECAN(&canTxMessage[1]);
+            sendECAN(&canTxMessage[2]);
+            sendECAN(&canTxMessage[3]);
+            ahrsMessage = false;
+        }
         
         /* check to see when a message is received and move the message 
 		into RAM and parse the message */ 

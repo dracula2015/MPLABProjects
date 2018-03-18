@@ -6,9 +6,7 @@
  */
 
 #include "user.h"
-Parameter P;
-Matrix *Kp;
-Matrix *Kd;
+
 Vector3f *OMRS_controller(Vector3f *qd, Vector3f *dqd, Vector3f *ddqd, Vector3f *q, Vector3f *dq)
 {
 #ifdef printTimeConsumption

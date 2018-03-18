@@ -44,8 +44,9 @@ int main(void)
     /* TODO <INSERT USER APPLICATION CODE HERE> */
     InitialParameters();
 
+    int ahrsCount = 0;
     int wheeli = 0;
-//    float Jcoefficient = 0.0;
+    float Jcoefficient = 0.0;
 //    LATAbits.LATA8 = 1;
 //    LATCbits.LATC0 = 1;
 //    LATCbits.LATC5 = 1;
@@ -92,6 +93,40 @@ int main(void)
             wheelPos[2] = (wheelPos[2]<<8) + canRxMessage[2].data[2];
             wheelPos[2] = (wheelPos[2]<<8) + canRxMessage[2].data[3];
 		};
+        if(canRxMessage[3].buffer_status==CAN_BUF_FULL)
+		{
+			rxECAN(&canRxMessage[3]);			
+			/* reset the flag when done */
+			canRxMessage[3].buffer_status=CAN_BUF_EMPTY;
+            for(ahrsCount=0;ahrsCount<8;ahrsCount++)
+            {
+                ahrs.signal[ahrsCount] = canRxMessage[3].data[ahrsCount];
+            }
+            ahrsAttitude->z = - ahrs.attitude[0];
+		}
+        if(canRxMessage[4].buffer_status==CAN_BUF_FULL)
+		{
+			rxECAN(&canRxMessage[4]);			
+			/* reset the flag when done */
+			canRxMessage[4].buffer_status=CAN_BUF_EMPTY;
+            for(ahrsCount=8;ahrsCount<16;ahrsCount++)
+            {
+                ahrs.signal[ahrsCount] = canRxMessage[4].data[ahrsCount-8];
+            }
+            dAhrsAttitude->x = ahrs.acclerom[0];
+		}
+        if(canRxMessage[5].buffer_status==CAN_BUF_FULL)
+		{
+			rxECAN(&canRxMessage[5]);			
+			/* reset the flag when done */
+			canRxMessage[5].buffer_status=CAN_BUF_EMPTY;
+            for(ahrsCount=16;ahrsCount<24;ahrsCount++)
+            {
+                ahrs.signal[ahrsCount] = canRxMessage[5].data[ahrsCount-16];
+            }
+            dAhrsAttitude->y = ahrs.acclerom[1];
+		}
+        
         delta = globalTime -globalTimePre;
         if(stop){globalTime = 0.0;}       
         if(reset)
@@ -142,10 +177,12 @@ int main(void)
 //        Jacobin->triMatrix[2][0] = Jcoefficient * ( sqrt(3) );
 //        Jacobin->triMatrix[2][1] = Jcoefficient * ( sqrt(3) );
 //        Jacobin->triMatrix[2][2] = Jcoefficient * ( sqrt(3) );
+        
         JCoeff->triMatrix[0][0] = P.r/P.n*cos(q->z);
         JCoeff->triMatrix[0][1] = -P.r/P.n*sin(q->z);
         JCoeff->triMatrix[1][0] = P.r/P.n*sin(q->z);
         JCoeff->triMatrix[1][1] = P.r/P.n*cos(q->z);
+        JCoeff->triMatrix[2][2] = P.r/P.n;
         m_equal(Jacobin,m_m_multiply(JCoeff,JConst));
 
         v_equal(dq,m_v_multiply(Jacobin,omega));
@@ -157,6 +194,11 @@ int main(void)
         qPre->x = q->x;
         qPre->y = q->y;
         qPre->z = q->z;
+        
+        ahrsAttitude->x = ahrsAttitude->x + dAhrsAttitude->x * delta;
+        ahrsAttitude->y = ahrsAttitude->y + dAhrsAttitude->y * delta;
+//        v_equal(ahrsAttitude,v_plus(ahrsAttitudePre,v_s_multiply(dAhrsAttitude,delta)));
+//        v_equal(ahrsAttitudePre,ahrsAttitude);
         
         controlEffect = OMRS_controller(qd, dqd, ddqd, q, dq);
         

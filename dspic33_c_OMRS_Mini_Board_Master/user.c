@@ -51,6 +51,27 @@ long wheelPos[3] = {0,0,0};
 long wheelPosPre[3] = {0,0,0};
 float wheelSpeed[3] = {0.0,0.0,0.0};
 //float wheelSpeedPre[3] = {0.0,0.0,0.0};
+
+bool go = 0;
+bool stop = 1;
+bool direction = 0;
+bool reset = false;
+float radioInterval = 0.0;
+unsigned int radioSignalCount = 0;
+//unsigned int ahrsSignalCount = 0;
+unsigned int radioSignal[25] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int radioChannel[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+//unsigned char ahrsSignal[24] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,};
+//float ahrsAttitude[3] = {0.0, 0.0, 0.0};
+//float ahrsAcclerom[3] = {0.0, 0.0, 0.0};
+
+int count[6]={0,0,0,0,0,0};
+int motor[3] = {0,0,0};
+int hostCommandCount=0;
+
+AHRS ahrs;
+
 /******************************************************************************/
 /* User Functions                                                             */
 /******************************************************************************/

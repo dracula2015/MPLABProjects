@@ -25,8 +25,10 @@
 #include "user.h"            /* variables/params used by user.c               */
 
 #define FCY 40000000
-#define BAUDRATE 115200//57600//9600  
-#define BRGVAL ((FCY/BAUDRATE)/16)-1
+#define BAUDRATE1 115200//57600//9600
+#define BAUDRATE2 57600//115200//9600
+#define BRGVAL1 ((FCY/BAUDRATE1)/16)-1
+#define BRGVAL2 ((FCY/BAUDRATE2)/16)-1
 
 #define FCAN  	      	40000000 
 #define BITRATE 		1000000  
@@ -37,10 +39,19 @@
 #define DELAY_10us asm volatile ("REPEAT,#401");Nop();//10us delay 
 
 float globalTime = 0.0;
-char ReceivedChar;
-char TransmitChar;
+char ReceivedChar, ReceivedChar1;
+char TransmitChar, TransmitChar1;
 long QEIPos = 0;
 long QEIPosHigh = 0;
+
+//unsigned char ahrsSignal[24] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,};
+//float ahrsAttitude[3] = {0.0, 0.0, 0.0};
+//float ahrsAcclerom[3] = {0.0, 0.0, 0.0};
+//unsigned char* attitudeAddr = ahrsAttitude;
+//unsigned int radioSignalCount = 0;
+unsigned int ahrsSignalCount = 0;
+AHRS ahrs;
+bool ahrsMessage = false;
 /******************************************************************************/
 /* User Functions                                                             */
 /******************************************************************************/
@@ -65,6 +76,11 @@ void InitApp(void)
     /*square board*/
     RPINR18bits.U1RXR = 20;
     //***************************
+    // Assign U2Rx To Pin RP17
+    //***************************
+    /*square board*/
+    RPINR19bits.U2RXR = 21;
+    //***************************
     // Assign U1CTS To Pin RP1
     //***************************
     //RPINR18bits.U1CTSR = 1;
@@ -78,6 +94,11 @@ void InitApp(void)
     //***************************
     /*square board*/
     RPOR2bits.RP4R = 3;
+    //***************************
+    // Assign U2Tx To Pin RP18
+    //***************************
+    /*square board*/
+    RPOR9bits.RP18R = 5;
     //***************************
     // Assign U1RTS To Pin RP3
     //***************************
@@ -171,18 +192,35 @@ void UartInit(void)
     U1MODEbits.ABAUD = 0; // Auto-Baud Disabled
     U1MODEbits.BRGH = 0; // Low Speed mode
     U1MODEbits.LPBACK = 0;
-    U1BRG = BRGVAL; // BAUD Rate Setting for 57600
+    U1BRG = BRGVAL1; // BAUD Rate Setting for 115200//57600
     U1STAbits.UTXISEL0 = 0; // Interrupt after one Tx character is transmitted
     U1STAbits.UTXISEL1 = 0;
     U1STAbits.URXISEL = 0;
     IEC0bits.U1TXIE = 1; // Enable UART Tx interrupt
     IEC0bits.U1RXIE = 1; // Enable UART Rx interrupt
+    IPC2bits.U1RXIP = 0b100;
     U1MODEbits.UARTEN = 1; // Enable UART
     U1STAbits.UTXEN = 1; // Enable UART Tx
+    
+    U2MODEbits.STSEL = 0; // 2-stop bit
+    U2MODEbits.PDSEL = 0; // Even Parity, 8-data bits
+    U2MODEbits.ABAUD = 0; // Auto-Baud Disabled
+    U2MODEbits.BRGH = 0; // Low Speed mode
+    U2MODEbits.LPBACK = 0;
+    U2BRG = BRGVAL2; // BAUD Rate Setting for 100000//115200//57600
+    U2STAbits.UTXISEL0 = 0; // Interrupt after one Tx character is transmitted
+    U2STAbits.UTXISEL1 = 0;
+    U2STAbits.URXISEL = 0;
+    IEC1bits.U2TXIE = 1; // Enable UART Tx interrupt
+    IEC1bits.U2RXIE = 1; // Enable UART Rx interrupt
+    IPC7bits.U2RXIP = 0b101;
+    IPC7bits.U2TXIP = 0b101;
+    U2MODEbits.UARTEN = 1; // Enable UART
+    U2STAbits.UTXEN = 1; // Enable UART Tx
     /* wait at least 104 usec (1/9600) before sending first char */
-//    DELAY_105us
+    //DELAY_105us
     /* wait at least 10 usec (1/115200) before sending first char */
-    DELAY_10us
+    DELAY_10us 
 }
 
 void QEInit(void)
