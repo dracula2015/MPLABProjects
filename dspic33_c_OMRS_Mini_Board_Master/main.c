@@ -45,6 +45,8 @@ int main(void)
     InitialParameters();
 
     int ahrsCount = 0;
+    int thetaCount =0;
+    float attitudePre = 0.0;
     int wheeli = 0;
     float Jcoefficient = 0.0;
 //    LATAbits.LATA8 = 1;
@@ -102,7 +104,15 @@ int main(void)
             {
                 ahrs.signal[ahrsCount] = canRxMessage[3].data[ahrsCount];
             }
-            ahrsAttitude->z = - ahrs.attitude[0];
+            if(ahrs.attitude[0] - attitudePre > PI)
+            {
+                thetaCount--;
+            }else if(ahrs.attitude[0] - attitudePre < -PI)
+            {
+                thetaCount++;
+            }
+            ahrsAttitude->z = - (2*thetaCount*PI + ahrs.attitude[0]);
+//            ahrsAttitude->z = - ahrs.attitude[0];
 		}
         if(canRxMessage[4].buffer_status==CAN_BUF_FULL)
 		{
