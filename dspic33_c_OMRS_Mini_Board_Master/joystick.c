@@ -80,27 +80,6 @@ void Debounce(void)
 void Joystick(void)
 {
     Debounce();
-    if(radioChannel[8]==0x06A0)
-    {
-        go = 0;
-        stop = 1;
-    }else if(radioChannel[8]==0x0160)
-    {
-        go = 1;
-        stop = 0;
-    }else;
-        
-    if(stop){
-        canTxMessage[0].data[4] = 0;
-        canTxMessage[1].data[4] = 0;
-        canTxMessage[2].data[4] = 0;
-    }
-
-    if(go){
-        canTxMessage[0].data[4] = 1;
-        canTxMessage[1].data[4] = 1;
-        canTxMessage[2].data[4] = 1;
-    }
 
     if(radioChannel[4]==0x0620)
     {
@@ -126,22 +105,20 @@ void Joystick(void)
         JCoeff->triMatrix[1][0] = -sin(ahrsAttitude->z);
         JCoeff->triMatrix[1][1] = cos(ahrsAttitude->z);
         JCoeff->triMatrix[2][2] = 1;
-
-//        dAhrsAttitude->z = fmodf(dAhrsAttitude->z,360);
-//        dAhrsAttitude->z = dAhrsAttitude->z / 180 * PI;
-//        JCoeff->triMatrix[0][0] = cos(dAhrsAttitude->z);
-//        JCoeff->triMatrix[0][1] = sin(dAhrsAttitude->z);
-//        JCoeff->triMatrix[1][0] = -sin(dAhrsAttitude->z);
-//        JCoeff->triMatrix[1][1] = cos(dAhrsAttitude->z);
-//        JCoeff->triMatrix[2][2] = 1;
         
 /* close loop */
-//        v_equal(joystickError,v_minus(m_v_multiply(JBackMatrix,joystick),v_s_multiply(omega,P.r/P.n)));
-        v_equal(joystickError,v_minus(m_v_multiply(JBackMatrix,m_v_multiply(JCoeff,joystick)),v_s_multiply(omega,P.r/P.n)));
-        v_equal(controlEffect,v_plus(v_s_multiply(joystickError,joystickGainKP),v_s_multiply(v_s_multiply(joystickError,1/delta),joystickGainKD)));
-             
-//        v_equal(joystickError,v_minus(joystick,omega));
+        if(radioChannel[10]==0x0160)
+        {
+            v_equal(joystickError,v_minus(m_v_multiply(JBackMatrix,joystick),v_s_multiply(omega,P.r/P.n)));
+        }else if(radioChannel[10]==0x0400)
+        {
+            v_equal(joystickError,v_minus(m_v_multiply(JBackMatrix,m_v_multiply(JCoeff,joystick)),v_s_multiply(omega,P.r/P.n)));
+        }else
+        {
+            v_equal(joystickError,v_minus(joystick,v_s_multiply(omega,P.r/P.n)));
+        }
 //        v_equal(controlEffect,v_s_multiply(joystickError,joystickGainKP));
+        v_equal(controlEffect,v_plus(v_s_multiply(joystickError,joystickGainKP),v_s_multiply(v_s_multiply(joystickError,1/delta),joystickGainKD)));
         
 /* open loop */
 //        v_equal(controlEffect,m_v_multiply(JBackMatrix,joystick));
@@ -149,5 +126,53 @@ void Joystick(void)
 //        controlEffect->x = joystick->x;
 //        controlEffect->y = joystick->y;
 //        controlEffect->z = joystick->z;
-    }else;
+        if(radioChannel[8]==0x06A0)
+        {
+            go = 0;
+            stop = 1;
+        }else if(radioChannel[8]==0x0160)
+        {
+            go = 1;
+            stop = 0;
+        }else;
+    }else
+    {
+        controlEffect = OMRS_controller(qd, dqd, ddqd, q, dq);
+        if(radioChannel[8]==0x06A0)
+        {
+            go = 0;
+            stop = 1;
+        }else if(radioChannel[8]==0x0160)
+        {
+            go = 1;
+            stop = 0;
+        }else;
+    }
+    
+    if(stop){
+        canTxMessage[0].data[4] = 0;
+        canTxMessage[1].data[4] = 0;
+        canTxMessage[2].data[4] = 0;
+    }
+
+    if(go){
+        canTxMessage[0].data[4] = 1;
+        canTxMessage[1].data[4] = 1;
+        canTxMessage[2].data[4] = 1;
+    }
+    
+    canTxMessage[0].data[0] =  ((long)(100*controlEffect->x))>>24;
+    canTxMessage[0].data[1] =  ((long)(100*controlEffect->x))>>16;
+    canTxMessage[0].data[2] =  ((long)(100*controlEffect->x))>>8;
+    canTxMessage[0].data[3] =  ((long)(100*controlEffect->x));
+
+    canTxMessage[1].data[0] =  ((long)(100*controlEffect->y))>>24;
+    canTxMessage[1].data[1] =  ((long)(100*controlEffect->y))>>16;
+    canTxMessage[1].data[2] =  ((long)(100*controlEffect->y))>>8;
+    canTxMessage[1].data[3] =  ((long)(100*controlEffect->y));
+
+    canTxMessage[2].data[0] =  ((long)(100*controlEffect->z))>>24;
+    canTxMessage[2].data[1] =  ((long)(100*controlEffect->z))>>16;
+    canTxMessage[2].data[2] =  ((long)(100*controlEffect->z))>>8;
+    canTxMessage[2].data[3] =  ((long)(100*controlEffect->z));
 }

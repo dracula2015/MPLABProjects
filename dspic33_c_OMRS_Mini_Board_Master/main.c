@@ -111,8 +111,13 @@ int main(void)
             {
                 thetaCount++;
             }
-            ahrsAttitude->z = - (2*thetaCount*PI + ahrs.attitude[0]);
-//            ahrsAttitude->z = - ahrs.attitude[0];
+            if(radioChannel[11]==0x0160)
+            {
+                ahrsAttitude->z = - (2*thetaCount*PI + ahrs.attitude[0]);
+            }else
+            {
+                ahrsAttitude->z = - ahrs.attitude[0];
+            }
 		}
         if(canRxMessage[4].buffer_status==CAN_BUF_FULL)
 		{
@@ -167,7 +172,7 @@ int main(void)
         globalTimePre = globalTime;
         
         Trajectory();
-                
+        
         for(wheeli=0;wheeli<3;wheeli++)
         {
             wheelSpeed[wheeli] = 2*PI*(wheelPos[wheeli] - wheelPosPre[wheeli])/2048/delta;
@@ -210,24 +215,9 @@ int main(void)
 //        v_equal(ahrsAttitude,v_plus(ahrsAttitudePre,v_s_multiply(dAhrsAttitude,delta)));
 //        v_equal(ahrsAttitudePre,ahrsAttitude);
         
-        controlEffect = OMRS_controller(qd, dqd, ddqd, q, dq);
+//        controlEffect = OMRS_controller(qd, dqd, ddqd, q, dq);
         
         Joystick();
-        
-        canTxMessage[0].data[0] =  ((long)(100*controlEffect->x))>>24;
-        canTxMessage[0].data[1] =  ((long)(100*controlEffect->x))>>16;
-        canTxMessage[0].data[2] =  ((long)(100*controlEffect->x))>>8;
-        canTxMessage[0].data[3] =  ((long)(100*controlEffect->x));
-        
-        canTxMessage[1].data[0] =  ((long)(100*controlEffect->y))>>24;
-        canTxMessage[1].data[1] =  ((long)(100*controlEffect->y))>>16;
-        canTxMessage[1].data[2] =  ((long)(100*controlEffect->y))>>8;
-        canTxMessage[1].data[3] =  ((long)(100*controlEffect->y));
-        
-        canTxMessage[2].data[0] =  ((long)(100*controlEffect->z))>>24;
-        canTxMessage[2].data[1] =  ((long)(100*controlEffect->z))>>16;
-        canTxMessage[2].data[2] =  ((long)(100*controlEffect->z))>>8;
-        canTxMessage[2].data[3] =  ((long)(100*controlEffect->z));
         
         sendECAN(&canTxMessage[0]);
         sendECAN(&canTxMessage[1]);
@@ -242,6 +232,7 @@ int main(void)
         /* release dynamically allocated local memory */
         freeLocalMem();
 //        U1TXREG = 'u';
+//        U1TXREG = (long)((globalTime - loopTime)*10000)>>16;   
 //        U1TXREG = (long)((globalTime - loopTime)*10000)>>8;  
 //        U1TXREG = (long)((globalTime - loopTime)*10000);      
     };
