@@ -19,6 +19,7 @@
 #include "ecan.h"
 
 #define PI 3.1415926
+#define UART1_MSG_BUF_LENGTH 2
 /* TODO Application specific user parameters used in user.c may go here */
 typedef struct Parameter
 {
@@ -50,11 +51,30 @@ typedef struct Ahrs
     };
 } AHRS;
 
+typedef struct Command
+{
+    union {
+        unsigned char signal[12];
+        float command[3];
+    };
+} MATCOMMAND;
+
+typedef struct QEISpeed
+{
+    union {
+        unsigned char signal[12];
+        float speed[3];
+    };
+} QEISpeed;
+
+typedef unsigned char UART1MSGBUF [UART1_MSG_BUF_LENGTH][13];
+extern UART1MSGBUF uart1MsgBuf __attribute__((space(dma)));
+
 extern Matrix *Jacobin;
 extern Matrix *JConst;
 extern Matrix *JCoeff;
 extern Matrix* JBackMatrix;
-extern Matrix* WMobile;
+//extern Matrix* WMobile;
 extern Vector3f* qd;
 extern Vector3f* dqd;
 extern Vector3f* ddqd;
@@ -123,8 +143,11 @@ extern Vector3f* pointerVectorGlobal[100];
 
 extern Parameter P;
 extern AHRS ahrs;
+extern MATCOMMAND matlabVoltage;
+extern QEISpeed qeiSpeed;
 extern Matrix *Kp;
 extern Matrix *Kd;
+extern bool QEIStatus;
 /******************************************************************************/
 /* User Function Prototypes                                                   */
 /******************************************************************************/
@@ -137,6 +160,8 @@ void UartInit(void);
 void QEInit(void);
 void PwmInit(void); 
 void TimerInit(void);
+void cfgDma5UartRx(void);
+void cfgDma4UartTx(void);
 void InitialParameters(void);
 void ahrs_decode(unsigned int *ahrsSignal,float *ahrsAttitude, float *ahrsAcclerom);
 void sbus_decode(unsigned int *radioSignal,int *radioChannel);

@@ -22,7 +22,7 @@
 
 #include "ecan.h"
 
-ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
+ECAN1MSGBUF ecan1MsgBuf __attribute__((space(dma)));
 mID canTxMessage[5];
 mID canRxMessage[6];
 

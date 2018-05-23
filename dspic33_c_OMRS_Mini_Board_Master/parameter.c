@@ -11,7 +11,7 @@ Matrix *Jacobin;
 Matrix *JConst;
 Matrix *JCoeff;
 Matrix* JBackMatrix;
-Matrix* WMobile;
+//Matrix* WMobile;
 Vector3f* qd;
 Vector3f* dqd;
 Vector3f* ddqd;
@@ -86,7 +86,7 @@ void InitialParameters(void)
     JBackMatrix = m_constructor(global, NULL, NULL, -0.5, sqrt(3)/2, P.La, -0.5, -sqrt(3)/2, P.La, 1, 0, P.La);
     JConst = m_constructor(global, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     m_equal(JConst,m_inverse(JBackMatrix));
-    Matrix* WMobile = m_constructor(global, NULL, NULL, 1, 0, 0, 0, 1, 0, 0, 0, 1);
+//    Matrix* WMobile = m_constructor(global, NULL, NULL, 1, 0, 0, 0, 1, 0, 0, 0, 1);
     /* robot was default controlled by the MCU*/
     radioSignal[4] = 0x01E0;
 //    float Jcoefficient=0.0;

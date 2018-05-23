@@ -19,7 +19,7 @@
 #include "user.h"            /* variables/params used by user.c               */
 
 #define FCY 40000000
-#define BAUDRATE 57600//9600  
+#define BAUDRATE 115200//57600//9600  
 #define BRGVAL ((FCY/BAUDRATE)/16)-1
 #define DELAY_105us ams volatile ("REPEAT,#4201");Nop();//105us delay 
 /******************************************************************************/

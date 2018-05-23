@@ -71,7 +71,10 @@ int motor[3] = {0,0,0};
 int hostCommandCount=0;
 
 AHRS ahrs;
-
+MATCOMMAND matlabVoltage;
+QEISpeed qeiSpeed;
+UART1MSGBUF uart1MsgBuf __attribute__((space(dma)));
+bool QEIStatus;
 /******************************************************************************/
 /* User Functions                                                             */
 /******************************************************************************/
@@ -172,6 +175,7 @@ void InitApp(void)
     */
     //TRISB = 0xFFFF;
     /* Initialize peripherals */
+    cfgDma4UartTx();
     DMAInit();
     ECANInit();
     UartInit();
@@ -240,7 +244,7 @@ void UartInit(void)
     U2STAbits.URXISEL = 0;
     IEC1bits.U2TXIE = 1; // Enable UART Tx interrupt
     IEC1bits.U2RXIE = 1; // Enable UART Rx interrupt
-    IPC7bits.U2RXIP = 0b101;
+    IPC7bits.U2RXIP = 0b100;
     U2MODEbits.UARTEN = 1; // Enable UART
     U2STAbits.UTXEN = 1; // Enable UART Tx
     /* wait at least 104 usec (1/9600) before sending first char */
@@ -293,3 +297,96 @@ void TimerInit(void)
     IEC1bits.T4IE = 1; // Enable Timer4 interrupt
     T4CONbits.TON = 1; // Start Timer
 }
+
+// DMA4 configuration
+void cfgDma4UartTx(void)
+{
+	//********************************************************************************
+	//  Associate DMA Channel 4 with UART Tx
+	//********************************************************************************/
+    /* Data Transfer Size: Byte Transfer Mode */
+    DMA4CONbits.SIZE = 0x1;
+    /* Data Transfer Direction: DMA RAM to Peripheral */
+    DMA0CONbits.DIR = 0x1;
+    /* DMA Addressing Mode: Register Indirect with Post-Increment mode */
+    DMA0CONbits.AMODE = 0x0;
+    /* One-shot, Ping-Pong modes disabled */
+    DMA4CONbits.MODE  = 0x1;
+
+	DMA4REQ = 0x000C;					// Select UART1 Transmitter
+//	DMA4PAD = (volatile unsigned int) &U1TXREG;
+    DMA4PAD =  0x0224;
+	
+	//********************************************************************************
+	//  Configure DMA Channel 4 to:
+	//  Transfer data from RAM to UART
+	//  One-Shot mode
+	//  Register Indirect with Post-Increment
+	//  Using single buffer
+	//  13 transfers per buffer
+	//  Transfer words
+	//********************************************************************************/
+
+	DMA4CNT = 13;						// 13 DMA requests
+
+	//********************************************************************************
+	// Associate one buffer with Channel 4 for one-shot operation
+	//********************************************************************************/
+	DMA4STA = __builtin_dmaoffset(&uart1MsgBuf[0]);
+
+	//********************************************************************************
+	//	Enable DMA Interrupts
+	//********************************************************************************/
+	IFS2bits.DMA4IF  = 0;			// Clear DMA Interrupt Flag
+	IEC2bits.DMA4IE  = 1;			// Enable DMA interrupt
+
+}
+
+// DMA5 configuration
+//void cfgDma5UartRx(void)
+//{
+//	//********************************************************************************
+//	//  Associate DMA Channel 5 with UART Rx
+//	//********************************************************************************/
+//	/* Data Transfer Size: Word Transfer Mode */
+//    DMA5CONbits.SIZE  = 0x0;
+//    /* Data Transfer Direction: Peripheral to DMA RAM */
+//    DMA5CONbits.DIR   = 0;
+//    /* DMA Addressing Mode: Register Indirect with Post-Increment mode */
+//    DMA5CONbits.AMODE = 0;
+//    /*  Continuous, Ping-Pong modes enabled */
+//	DMA5CONbits.MODE  = 2;
+//
+//    DMA5REQ = 0x000B;					// Select UART1 Receiver
+////	DMA5PAD = (volatile unsigned int) &U1RXREG;
+//    DMA5PAD = 0x0226;
+//
+//	//********************************************************************************
+//	//  Configure DMA Channel 5 to:
+//	//  Transfer data from UART to RAM Continuously
+//	//  Register Indirect with Post-Increment
+//	//  Using two ?ping-pong? buffers
+//	//  8 transfers per buffer
+//	//  Transfer words
+//	//********************************************************************************/
+//
+//	DMA5CNT = 7;						// 8 DMA requests
+//
+//	//********************************************************************************
+//	//  Associate two buffers with Channel 5 for ?Ping-Pong? operation
+//	//********************************************************************************/
+//	DMA5STA = __builtin_dmaoffset(&uart1MsgBuf[0]);
+//	DMA5STB = __builtin_dmaoffset(&uart1MsgBuf[1]);
+//
+//	//********************************************************************************
+//	//	Enable DMA Interrupts
+//	//********************************************************************************/
+//	IFS3bits.DMA5IF  = 0;			// Clear DMA interrupt
+//	IEC3bits.DMA5IE  = 1;			// Enable DMA interrupt
+//
+//	//********************************************************************************
+//	//  Enable DMA Channel 5 to receive UART data
+//	//********************************************************************************/
+//	DMA5CONbits.CHEN = 1;			// Enable DMA Channel
+//}
+

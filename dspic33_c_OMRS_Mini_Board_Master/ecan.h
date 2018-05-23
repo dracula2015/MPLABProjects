@@ -54,7 +54,7 @@ USE FOR EXTENDED MESSAGES ONLY */
 
 /* DMA CAN Message Buffer Configuration */
 typedef unsigned int ECAN1MSGBUF [ECAN1_MSG_BUF_LENGTH][8];
-extern ECAN1MSGBUF  ecan1MsgBuf __attribute__((space(dma)));
+extern ECAN1MSGBUF ecan1MsgBuf __attribute__((space(dma)));
 
 /* Message structure in RAM */
 typedef struct{

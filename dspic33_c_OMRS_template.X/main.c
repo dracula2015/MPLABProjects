@@ -100,6 +100,22 @@ int main(void)
     //LATAbits.LATA0=0;
     //LATAbits.LATA1=0;
     //unsigned int receiverdNumber = 0;
+    if(stop){
+        LATAbits.LATA0=1;
+        LATAbits.LATA4=1;
+        LATAbits.LATA8=1;
+    }
+    if(go){
+        LATAbits.LATA0=0;
+        LATAbits.LATA4=0;
+        LATAbits.LATA8=0;
+    }
+    LATAbits.LATA1=direction[0];
+    LATAbits.LATA7=direction[1];
+    LATAbits.LATA9=direction[2];
+    P1DC1=(5*motor[0]/3);
+    P1DC2=(5*motor[1]/3);
+    P1DC3=(5*motor[2]/3);
     while(1)
     {
         /*
@@ -127,96 +143,114 @@ int main(void)
         {   
             //LATAbits.LATA1=1;
         }
-        if(stop){
-        LATAbits.LATA0=1;
-        LATAbits.LATA4=1;
-        LATAbits.LATA8=1;
-        }
-        if(go){
-        LATAbits.LATA0=0;
-        LATAbits.LATA4=0;
-        LATAbits.LATA8=0;
-        }
-        
-        
-        if(i==0)
-        {            
-            motor[0] = count[0];
-            motor[0] = motor[0] & 0x00FF;
-            motor[0] = motor[0] | (count[1]<<8);
-            
-            motor[1] = count[2];
-            motor[1] = motor[1] & 0x00FF;
-            motor[1] = motor[1] | (count[3]<<8);
-            
-            motor[2] = count[4];
-            motor[2] = motor[2] & 0x00FF;
-            motor[2] = motor[2] | (count[5]<<8);
-        }
-        int j=0;
-        for(j=0;j<3;j++)
-        {
-            int temp=0;
-            temp = motor[j] & 0x8000;
-            if(temp)
-            {
-                motor[j]=motor[j] & 0x7fff ;
-                //motor[j]=~(motor[j]-1);
-                direction[j]=0;
-            }else{direction[j]=1;}
-        }
-        LATAbits.LATA1=direction[0];
-        LATAbits.LATA7=direction[1];
-        LATAbits.LATA9=direction[2];
-        P1DC1=(5*motor[0]/3);
-        P1DC2=(5*motor[1]/3);
-        P1DC3=(5*motor[2]/3);
+//        if(stop){
+//        LATAbits.LATA0=1;
+//        LATAbits.LATA4=1;
+//        LATAbits.LATA8=1;
+//        }
+//        if(go){
+//        LATAbits.LATA0=0;
+//        LATAbits.LATA4=0;
+//        LATAbits.LATA8=0;
+//        }
+//        
+//        
+//        if(i==0)
+//        {            
+//            motor[0] = count[0];
+//            motor[0] = motor[0] & 0x00FF;
+//            motor[0] = motor[0] | (count[1]<<8);
+//            
+//            motor[1] = count[2];
+//            motor[1] = motor[1] & 0x00FF;
+//            motor[1] = motor[1] | (count[3]<<8);
+//            
+//            motor[2] = count[4];
+//            motor[2] = motor[2] & 0x00FF;
+//            motor[2] = motor[2] | (count[5]<<8);
+//        }
+//        int j=0;
+//        for(j=0;j<3;j++)
+//        {
+//            int temp=0;
+//            temp = motor[j] & 0x8000;
+//            if(temp)
+//            {
+//                motor[j]=motor[j] & 0x7fff ;
+//                //motor[j]=~(motor[j]-1);
+//                direction[j]=0;
+//            }else{direction[j]=1;}
+//        }
+//        LATAbits.LATA1=direction[0];
+//        LATAbits.LATA7=direction[1];
+//        LATAbits.LATA9=direction[2];
+//        P1DC1=(5*motor[0]/3);
+//        P1DC2=(5*motor[1]/3);
+//        P1DC3=(5*motor[2]/3);
         
     };
 }
 
 void __attribute__((__interrupt__)) _U1RXInterrupt(void)
 {
-    //U1TXREG='h';
-    //U1TXREG = 0X55;
-    //LATAbits.LATA1=1;
-    //if((receivedNumber==1000))
-    //if((receivedNumber%10)==8)
+    
     ReceivedChar = U1RXREG;
     
-    if(ReceivedChar == 'g'){go = 1;}
-    else if(ReceivedChar == 's'){stop = 1; go = 0;}
+    if(ReceivedChar == 'g')
+    {
+        LATAbits.LATA0=0;
+        LATAbits.LATA4=0;
+        LATAbits.LATA8=0;
+    }
+    else if(ReceivedChar == 's')
+    {
+        LATAbits.LATA0=1;
+        LATAbits.LATA4=1;
+        LATAbits.LATA8=1;
+    }
     else 
-    {
-        
-    if(ReceivedChar == 'u'){ U1TXREG = 'u'; i = 0;}
+    { 
+        if(ReceivedChar == 'u'){ U1TXREG = 'u'; i = 0;}
+        else
+        {
+            count[i] = ReceivedChar;
+            i++;
+            if(i>=6) 
+            {
+                i = 0;
+     
+                motor[0] = count[0];
+                motor[0] = motor[0] & 0x00FF;
+                motor[0] = motor[0] | (count[1]<<8);
 
-    else
-    {
-        count[i] = ReceivedChar;
-        i++;
-        if(i>=6) i = 0;
+                motor[1] = count[2];
+                motor[1] = motor[1] & 0x00FF;
+                motor[1] = motor[1] | (count[3]<<8);
+
+                motor[2] = count[4];
+                motor[2] = motor[2] & 0x00FF;
+                motor[2] = motor[2] | (count[5]<<8);
+                int j=0;
+                for(j=0;j<3;j++)
+                {
+                    int temp=0;
+                    temp = motor[j] & 0x8000;
+                    if(temp)
+                    {
+                        motor[j]=motor[j] & 0x7fff ;
+                        //motor[j]=~(motor[j]-1);
+                        direction[j]=0;
+                    }else{direction[j]=1;}
+                }
+                LATAbits.LATA1=direction[0];
+                LATAbits.LATA7=direction[1];
+                LATAbits.LATA9=direction[2];
+                P1DC1=(5*motor[0]/3);
+                P1DC2=(5*motor[1]/3);
+                P1DC3=(5*motor[2]/3);
+            }
+        }        
     }
-    
-    }
-/*    
-    U1TXREG=motor[0];
-    U1TXREG=motor[0]>>8;
-    U1TXREG=motor[1];
-    U1TXREG=motor[1]>>8;
-    U1TXREG=motor[2];
-    U1TXREG=motor[2]>>8;
-*/
-    
-/*
-    U1TXREG=count[0];
-    U1TXREG=count[1];
-    U1TXREG=count[2];
-    U1TXREG=count[3];
-    U1TXREG=count[4];
-    U1TXREG=count[5];
-*/  
-    
     IFS0bits.U1RXIF = 0;
 }
 
@@ -224,7 +258,4 @@ void __attribute__((__interrupt__)) _U1RXInterrupt(void)
 void __attribute__((__interrupt__)) _U1TXInterrupt(void)
 {
     IFS0bits.U1TXIF = 0; // clear TX interrupt flag
-    //U1TXREG = 'b'; // Transmit one character
-   
 }
-//*/

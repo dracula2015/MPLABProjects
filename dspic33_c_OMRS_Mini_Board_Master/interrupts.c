@@ -89,45 +89,56 @@ void __attribute__((__interrupt__, auto_psv)) _U1RXInterrupt(void)
     ReceivedChar = U1RXREG;
     U1TXREG = ReceivedChar;
     if(ReceivedChar == 'g'){go = 1; stop=0;}
-    else if(ReceivedChar == 's'){stop = 1; go = 0;}
-    else if(ReceivedChar == 'u')
-    { 
-        U1TXREG = 'u'; 
-        hostCommandCount = 0;
-//        int count = 0;
-//        for(count = 0; count<25; count++)
-//        {
-//            Delay_Us(Delay200uS_count);
-//            U1TXREG = radioSignal[count];
-//        }
-//        for(count = 0; count<16; count++)
-//        {
-//            Delay_Us(Delay200uS_count);
-//            Delay_Us(Delay200uS_count);
-//            U1TXREG = radioChannel[count]>>8;
-//            U1TXREG = radioChannel[count];
-//        }
-    }
-    else
+    else 
     {
-        count[hostCommandCount] = ReceivedChar;
-        hostCommandCount++;
-        if(hostCommandCount>=6) 
+        if(ReceivedChar == 's'){stop = 1; go = 0;}
+        else
         {
-            hostCommandCount = 0;
-            motor[0] = count[0];
-            motor[0] = motor[0] & 0x00FF;
-            motor[0] = motor[0] | (count[1]<<8);
+            if(ReceivedChar == 'u')
+            { 
+                U1TXREG = 'u'; 
+                hostCommandCount = 0;
+            }
+            else
+            {
+//                matlabVoltage.signal[hostCommandCount] = ReceivedChar;
+//                hostCommandCount++;
+//                if(hostCommandCount>=12)
+//                {
+//                    hostCommandCount=0;
+//                }
 
-            motor[1] = count[2];
-            motor[1] = motor[1] & 0x00FF;
-            motor[1] = motor[1] | (count[3]<<8);
+                count[hostCommandCount] = ReceivedChar;
+                hostCommandCount++;
+                if(hostCommandCount>=6) 
+                {
+                    hostCommandCount = 0;
+                    motor[0] = count[0];
+                    motor[0] = motor[0] & 0x00FF;
+                    motor[0] = motor[0] | (count[1]<<8);
 
-            motor[2] = count[4];
-            motor[2] = motor[2] & 0x00FF;
-            motor[2] = motor[2] | (count[5]<<8);
+                    motor[1] = count[2];
+                    motor[1] = motor[1] & 0x00FF;
+                    motor[1] = motor[1] | (count[3]<<8);
+
+                    motor[2] = count[4];
+                    motor[2] = motor[2] & 0x00FF;
+                    motor[2] = motor[2] | (count[5]<<8);
+
+                    int j=0;
+                    for(j=0;j<3;j++)
+                    {
+                        int temp = 0;
+                        temp = motor[j] & 0x8000;
+                        if(temp)
+                        {
+                            motor[j] = motor[j] & 0x7fff ;
+                            motor[j] = -motor[j];
+                        }else;
+                    }
+                }
+            }
         }
-        //radius = ReceivedChar / 100;
     }
 //    sendECAN(&canTxMessage[3]);
     IFS0bits.U1RXIF = 0;
@@ -258,3 +269,33 @@ void __attribute__((__interrupt__, no_auto_psv)) _T4Interrupt(void)
 //    LATCbits.LATC0 = ~LATCbits.LATC0;
     IFS1bits.T4IF = 0; // Clear Timer3 Interrupt Flag
 }
+
+//********************************************************************************
+//	Setup DMA interrupt handlers
+//********************************************************************************/
+void __attribute__((interrupt, no_auto_psv)) _DMA4Interrupt(void)
+{
+    DMA4CONbits.CHEN  = 1;			// Re-enable DMA0 Channel
+    DMA4REQbits.FORCE = 1;			// Manual mode: Kick-start the first transfer
+	IFS2bits.DMA4IF = 0;			// Clear the DMA4 Interrupt Flag;
+}
+
+//void __attribute__((interrupt, no_auto_psv)) _DMA5Interrupt(void)
+//{
+//	static unsigned int BufferCount = 0;  // Keep record of which buffer contains Rx Data
+//
+//	if(BufferCount == 0)
+//	{
+////		DMA4STA = __builtin_dmaoffset(UART1MSGBUF[0]); // Point DMA 4 to data to be transmitted
+//	}
+//	else
+//	{
+////		DMA4STA = __builtin_dmaoffset(UART1MSGBUF[1]); // Point DMA 4 to data to be transmitted
+//	}
+//
+//	DMA4CONbits.CHEN  = 1;			// Re-enable DMA4 Channel
+//	DMA4REQbits.FORCE = 1;			// Manual mode: Kick-start the first transfer
+//
+//	BufferCount ^= 1;				
+//	IFS3bits.DMA5IF = 0;			// Clear the DMA5 Interrupt Flag
+//}

@@ -83,9 +83,18 @@ void Joystick(void)
 
     if(radioChannel[4]==0x0620)
     {
-        controlEffect->x = motor[0];
-        controlEffect->y = motor[1];
-        controlEffect->z = motor[2];            
+//        controlEffect->x = matlabVoltage.command[0];
+//        controlEffect->y = matlabVoltage.command[1];
+//        controlEffect->z = matlabVoltage.command[2];
+//        if(stop)
+//        {
+//            motor[0] = 0;
+//            motor[1] = 0;
+//            motor[2] = 0;
+//        }
+        controlEffect->x = motor[0]/100.0;
+        controlEffect->y = motor[1]/100.0;
+        controlEffect->z = motor[2]/100.0;
     }else if(radioChannel[4]==0x0400)
     {
         joystick->x = (radioChannel[0] - 0x0400)/672.0*10.0;
@@ -134,7 +143,11 @@ void Joystick(void)
         {
             go = 1;
             stop = 0;
-        }else;
+        }else
+        {
+            go = 0;
+            stop = 1;
+        };
     }else
     {
         controlEffect = OMRS_controller(qd, dqd, ddqd, q, dq);
@@ -146,7 +159,11 @@ void Joystick(void)
         {
             go = 1;
             stop = 0;
-        }else;
+        }else
+        {
+            go = 0;
+            stop = 1;
+        };
     }
     
     if(stop){
